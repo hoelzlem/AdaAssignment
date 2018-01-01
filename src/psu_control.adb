@@ -11,20 +11,15 @@ package body PSU_Control is
       null;
     end Wait_For_Config;
 
-    function Get_Config return Ctrl_Config_T is
+    function Get_Config return PID_Config_A_T is
     begin
       return Conf;
     end Get_Config;
 
-    function Get_PFC_Config return PID_Config_T is
+    function Get_Config (Id : in PID_Target_T) return PID_Config_T is
     begin
-      return Conf.PFC_Config;
-    end Get_PFC_Config;
-
-    function Get_OUT_Config return PID_Config_T is
-    begin
-      return Conf.OUT_Config;
-    end Get_OUT_Config;
+      return Conf (Id);
+    end Get_Config;
 
     function Get_W_U_C1 return Float is
     begin
@@ -36,31 +31,24 @@ package body PSU_Control is
       return W_U_C2;
     end Get_W_U_C2;
 
-    procedure Set_Config (Val : in Ctrl_Config_T) is
+    procedure Set_Config (Val : in PID_Config_A_T) is
     begin
       Conf := Val;
       Conf_ALL_OK := True;
-      Conf_PFC_OK := True;
-      Conf_OUT_OK := True;
+      Conf_Status := (others => True);
     end Set_Config;
 
-    procedure Set_PFC_Config (Val : PID_Config_T)is
+    procedure Set_Config (Val : PID_Config_T; Id : PID_Target_T) is
+      status : Boolean := True;
     begin
-      Conf.PFC_Config := Val;
-      Conf_PFC_OK := True;
-      if (Conf_OUT_OK = True)then
-        Conf_ALL_OK := True;
-      end if;
-    end Set_PFC_Config;
-
-    procedure Set_OUT_Config (Val : PID_Config_T)is
-    begin
-      Conf.OUT_Config := Val;
-      Conf_OUT_OK := True;
-      if (Conf_PFC_OK = True)then
-        Conf_ALL_OK := True;
-      end if;
-    end Set_OUT_Config;
+      Conf (Id) := Val;
+      Conf_Status (Id) := True;
+      -- And reduce would certainly be nicer here
+      for id in Conf_Status'Range loop
+        status := status and Conf_Status (id);
+      end loop;
+      Conf_ALL_OK := status;
+    end Set_Config;
 
     procedure Set_W_U_C1 (Val : in Float) is
     begin
@@ -83,39 +71,45 @@ package body PSU_Control is
   end calculate_U;
 
   task body Control_Task_T is
-    Sim_Conf       : Sim_Config_T;
-    Conf           : Ctrl_Config_T;
+    Conf           : PID_Config_A_T;
     Next_Time      : Time := Clock;
     D_M1, D_M2_5   : Float := 0.0;
-    PFC_Controller : PID_Controller_T;
+    I_L1, I_L2     : Float := 0.0;
+    Controllers    : PID_Controller_A_T;
     OUT_Controller : PID_Controller_T;
   begin
-    Ada.Text_IO.Put_Line ("Doing contorl");
-    Sim.get_Config (Sim_Conf);
+    Sim.Wait_For_Config;
     Ctrl.Wait_For_Config;
     Conf := Ctrl.Get_Config;
-    PFC_Controller.Conf := Conf.PFC_Config;
-    OUT_Controller.Conf := Conf.OUT_Config;
+    -- Write Config to Controllers could be done with access type
+    for id in PID_Controller_A_T'Range loop
+      Controllers (id).Conf := Conf (id);
+    end loop;
     Next_Time := Clock;
+
     loop
       Ada.Text_IO.Put_Line ("Doing contorl");
-      D_M1 := calculate_U (C => PFC_Controller, W => Ctrl.Get_W_U_C1, Y => Sim.get_U_C1);
+      -- Run the controllers
+      I_L1 := calculate_U (C => Controllers (PID_U_C1), W => Ctrl.Get_W_U_C1, Y => Sim.Get_U_C1);
+      I_L2 := calculate_U (C => Controllers (PID_U_C2), W => Ctrl.Get_W_U_C2, Y => Sim.Get_U_C2);
+      D_M1 := calculate_U (C => Controllers (PID_I_L1), W => I_L1, Y => sim.Get_I_L1);
+      D_M2_5 := calculate_U (C => Controllers (PID_I_L2), W => I_L2, Y => sim.Get_I_L2);
+      -- Saturate (will be part of controller)
       if (D_M1 > 1.0)then
         D_M1 := 1.0;
       elsif (D_M1 < 0.0)then
         D_M1 := 0.0;
       end if;
-      Sim.set_D_M1 (D_M1);
-
-      D_M2_5 := calculate_U (C => OUT_Controller, W => Ctrl.Get_W_U_C2, Y => Sim.get_U_C2);
       if (D_M2_5 > 1.0)then
         D_M2_5 := 1.0;
       elsif (D_M2_5 < 0.0)then
         D_M2_5 := 0.0;
       end if;
+      -- Set for Simulation
+      Sim.set_D_M1 (D_M1);
       Sim.set_D_M2_5 (D_M2_5);
 
-      Next_Time := Next_Time + Milliseconds (Integer (Float (Conf.PFC_Config.T) * 1.0e6));
+      Next_Time := Next_Time + Milliseconds (Integer (Float (Conf (PID_U_C1).T) * 1.0e6));
       delay until Next_Time;
     end loop;
   end Control_Task_T;

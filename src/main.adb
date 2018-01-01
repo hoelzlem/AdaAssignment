@@ -6,17 +6,17 @@ with Ada.Text_IO;
 
 procedure Main is
   Sim_Conf  : Sim_Config_T;
-  Ctrl_Conf : Ctrl_Config_T;
+  Ctrl_Conf : PID_Config_A_T;
   Next_Time : Time := Clock;
 begin
-  Ctrl_Conf.PFC_Config.Kp := 2.0;
-  Ctrl_Conf.PFC_Config.Tn := 4.0;
-  Ctrl_Conf.PFC_Config.Tv := 0.0;
-  Ctrl_Conf.PFC_Config.T  := 0.0001;
-  Ctrl_Conf.OUT_Config.Kp := 2.0;
-  Ctrl_Conf.OUT_Config.Tn := 4.0;
-  Ctrl_Conf.OUT_Config.Tv := 0.0;
-  Ctrl_Conf.OUT_Config.T  := 0.0001;
+  --    Ctrl_Conf.PFC_Config.Kp := 2.0;
+  --    Ctrl_Conf.PFC_Config.Tn := 4.0;
+  --    Ctrl_Conf.PFC_Config.Tv := 0.0;
+  --    Ctrl_Conf.PFC_Config.T  := 0.0001;
+  --    Ctrl_Conf.OUT_Config.Kp := 2.0;
+  --    Ctrl_Conf.OUT_Config.Tn := 4.0;
+  --    Ctrl_Conf.OUT_Config.Tv := 0.0;
+  --    Ctrl_Conf.OUT_Config.T  := 0.0001;
   Sim_Conf.T := 0.00001;
   Sim_Conf.f_V1  := 0.0;
   Ctrl.Set_Config (Ctrl_Conf);
