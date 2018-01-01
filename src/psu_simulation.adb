@@ -1,90 +1,120 @@
-with Ada.Real_Time;
-use Ada.Real_Time;
+pragma Profile (Ravenscar);
+-- with System.Dim.Mks - Would be nice to use here
+with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Numerics.Elementary_Functions;
 with Ada.Numerics;
---with System.Dim.Mks - Would be nice to use
+with Ada.Text_IO;
 package body PSU_Simulation is
 
   protected body Simulation_I_T is
 
-    entry getConfig (Conf : in out Config_T) when configured is
+    entry get_Config (Val : in out Sim_Config_T) when Conf_OK is
     begin
-      Conf := configuration;
-    end getConfig;
+      Val := Conf;
+    end get_Config;
 
-    procedure setConfig (Conf : in Config_T) is
+    procedure set_Config (Val : in Sim_Config_T) is
     begin
-      configuration := Conf;
-    end setConfig;
+      Conf    := Val;
+      Conf_OK := True;
+    end set_Config;
 
-    function getMainsVoltage return Float is
+    function get_U_V1 return Float is
     begin
-      return simulationOutput.mainsVoltage;
-    end getMainsVoltage;
+      return Sim_Out.U_V1;
+    end get_U_V1;
 
-    function getDcBusVoltage return Float is
+    function get_I_L1 return Float is
     begin
-      return simulationOutput.dcBusVoltage;
-    end getDcBusVoltage;
+      return Sim_Out.I_L1;
+    end get_I_L1;
 
-    function getOutputVoltage return Float is
+    function get_U_C1 return Float is
     begin
-      return simulationOutput.outputVoltage;
-    end getOutputVoltage;
+      return Sim_Out.U_C1;
+    end get_U_C1;
 
-    function getOutputCurrent return Float is
+    function get_I_L2 return Float is
     begin
-      return simulationOutput.outputCurrent;
-    end getOutputCurrent;
+      return Sim_Out.I_L2;
+    end get_I_L2;
 
-    function getPfcDutycycle return Float is
+    function get_U_C2 return Float is
     begin
-      return pfcDutycycle;
-    end getPfcDutycycle;
+      return Sim_Out.U_C2;
+    end get_U_C2;
 
-    function getBuckDutycycle return Float is
+    function get_I_Load return Float is
     begin
-      return buckDutycycle;
-    end getBuckDutycycle;
+      return Sim_Out.I_Load;
+    end get_I_Load;
 
-    procedure setPfcDutycycle (Val : in Float) is
+    function get_Sim_All return Sim_Output_T is
     begin
-      pfcDutycycle := Val;
-    end setPfcDutycycle;
+      return Sim_Out;
+    end get_Sim_All;
 
-    procedure setOutputDutycycle (Val : in Float) is
+    function get_D_M1 return Float is
     begin
-      buckDutycycle := Val;
-    end setOutputDutycycle;
+      return D_M1;
+    end get_D_M1;
 
-    procedure setSimulationOutput (Val : in SimOutput_T) is
+    function get_D_M2_5 return Float is
     begin
-      simulationOutput := Val;
-    end setSimulationOutput;
+      return D_M2_5;
+    end get_D_M2_5;
+
+    procedure set_D (M1, M2_5 : in Float) is
+    begin
+      D_M1 := M1;
+      D_M2_5 := M2_5;
+    end set_D;
+
+    procedure set_D_M1 (Val : in Float) is
+    begin
+      D_M1 := Val;
+    end set_D_M1;
+
+    procedure set_D_M2_5 (Val : in Float) is
+    begin
+      D_M2_5 := Val;
+    end set_D_M2_5;
+
+    procedure set_Sim_Out (Val : in Sim_Output_T) is
+    begin
+      Sim_Out := Val;
+    end set_Sim_Out;
 
   end Simulation_I_T;
 
-  SimuationTask : Simulation_T;
-
-  task body Simulation_T is
-    span_ms   : Integer := 1;
-    span_s    : Float := Float (span_ms) * 1.0e-3;
-    time_s    : Float := 0.0;
-    load      : Float := 1.0;
-    Next_Time : Time := Clock + Milliseconds (span_ms);
+  task body Simulation_Task_T is
+    Angle      : Float := 0.0;
+    Load       : Float := 100.0;
+    Next_Time  : Time := Clock;
+    Conf       : Sim_Config_T;
+    Act, Prev  : Sim_Output_T;
   begin
+    Sim.get_Config (Conf);
     loop
-      values.mainsVoltage := config.mainsAmplitude *  Ada.Numerics.Elementary_Functions.Sin (time_s / config.mainsFrequency * 2.0 * Ada.Numerics.Pi);
-      values.inputCurrent := values.inputCurrent + (sim.getPfcDutycycle * values.mainsVoltage - (1.0 - sim.getPfcDutycycle) * values.dcBusVoltage) * span_s / config.pfcInductance;
-      values.outputCurrent := values.outputVoltage / load;
-      values.buckCurrent := values.buckCurrent+(sim.getBuckDutycycle * values.dcBusVoltage -(1.0 - sim.getBuckDutycycle) * values.outputVoltage) * span_s / config.buckInductance;
-      values.outputVoltage := (values.outputCurrent - values.buckCurrent) * span_s / config.buckCapacity;
-      values.dcBusVoltage := (values.inputCurrent - sim.getBuckDutycycle * values.buckCurrent) * span_s / config.pfcCapacity;
+      Act.I_L1   := Prev.I_L1 + (Sim.get_D_M1 * abs (Prev.U_V1) - (1.0 - Sim.get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
+      Act.I_Load := Prev.U_C2 / Load;
+      Act.I_L2   := Prev.I_L2 + (Sim.get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;
+      Act.U_C2   := (Prev.I_L2 - Prev.I_Load) * Conf.T / Conf.C2;
+      Act.U_C1   := (Prev.I_L1 - Sim.get_D_M2_5 * Prev.I_L2) * Conf.T / Conf.C1;
+      if (Conf.f_V1 > 0.0001) then
+        Angle    := Float'Remainder ( (Angle + Conf.T * Conf.f_V1 * 2.0 * Ada.Numerics.Pi ), ( 2.0 * Ada.Numerics.Pi));
+        Act.U_V1 := Conf.Up_V1 *  Ada.Numerics.Elementary_Functions.Sin (Angle);
+      else
+        Act.U_V1 := Conf.Up_V1;
+      end if;
+      Sim.set_Sim_Out (Act);
+      Ada.Text_IO.Put (Act.U_V1'Image & "  " & Act.U_C1'Image & "  " & Act.U_C2'Image);
+      Ada.Text_IO.Put_Line ("");
+      Prev       := Act;
+      Next_Time := Next_Time + Milliseconds (Integer (Float (Conf.T) * 1.0e6));
       delay until Next_Time;
-      -- increment time_s here
-      Next_Time := Next_Time + Milliseconds (span_ms);
     end loop;
-  end Simulation_T;
-
+  end Simulation_Task_T;
+  Simuation_Task : Simulation_Task_T;
 
 end PSU_Simulation;
