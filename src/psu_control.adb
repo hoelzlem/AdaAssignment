@@ -66,8 +66,8 @@ package body PSU_Control is
   begin
     C.E1 := C.E;
     C.E := W - Y;
-    C.I := C.I + C.E * C.Conf.Kp / C.Conf.Tn * C.Conf.T;
-    return C.I + C.Conf.Kp * (C.E + C.Conf.Tv / C.Conf.T * (C.E - C.E1));
+    C.I := C.I + C.E * C.Conf.Kp * C.Conf.Ki * C.Conf.T;
+    return C.I + C.Conf.Kp * (C.E + (C.E - C.E1) * C.Conf.Kd / C.Conf.T);
   end calculate_U;
 
   task body Control_Task_T is
