@@ -1,5 +1,6 @@
 with PSU_Simulation; use PSU_Simulation;
 with PSU_Control; use PSU_Control;
+with PSU_Monitoring;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
 
