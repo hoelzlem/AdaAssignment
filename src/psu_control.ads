@@ -4,8 +4,8 @@ package PSU_Control is
   -- This type provides settings for a PID controller
   type PID_Config_T is record
     Kp  : Float := 1.0; -- P gain
-    Tn  : Float := 1.0; -- Reset time
-    Tv  : Float := 1.0; -- Lead time
+    Ki  : Float := 1.0; -- I gain (multiplied with Kp)
+    Kd  : Float := 1.0; -- D gain (multiplied with Kp)
     T   : Float := 1.0; -- Period time
   end record;
 
