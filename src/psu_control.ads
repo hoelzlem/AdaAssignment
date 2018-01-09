@@ -6,12 +6,15 @@ package PSU_Control is
     Kp  : Float := 1.0; -- P gain
     Ki  : Float := 1.0; -- I gain (multiplied with Kp)
     Kd  : Float := 1.0; -- D gain (multiplied with Kp)
+    Sp  : Float := Float'Last;
+    Sn  : Float := Float'First;
     T   : Float := 1.0; -- Period time
   end record;
 
   type PID_Target_T is (PID_U_C1, PID_U_C2, PID_I_L1, PID_I_L2);
   type PID_Config_A_T is array ( PID_Target_T )  of PID_Config_T;
   type PID_Config_Status_A_T is array ( PID_Target_T ) of Boolean;
+  subtype Constraint_Float is Float range 0.0 .. 1.0;
     
   protected type Control_I_T is
     entry Wait_For_Config;
@@ -34,14 +37,16 @@ package PSU_Control is
   
   -- This type provides a PID controller
   -- Use of a tagged object would not be necesarry here
-  -- Saturation and AntiWindup woud be nice here
   type PID_Controller_T is tagged
     record
       Conf : PID_Config_T;
       E    : Float := 0.0;
       E1   : Float := 0.0;
+      P    : Float := 0.0;
       I    : Float := 0.0;
-      U    : Float := 0.0;
+      D    : Float := 0.0;
+      Y    : Float := 0.0;
+      Sat  : Float := 0.0;
     end record;
   function calculate_U (C : in out PID_Controller_T; W : in Float; Y : in Float) return Float;  
   type PID_Controller_A_T is array ( PID_Target_T )  of PID_Controller_T;

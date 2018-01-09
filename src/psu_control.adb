@@ -66,8 +66,18 @@ package body PSU_Control is
   begin
     C.E1 := C.E;
     C.E := W - Y;
-    C.I := C.I + C.E * C.Conf.Kp * C.Conf.Ki * C.Conf.T;
-    return C.I + C.Conf.Kp * (C.E + (C.E - C.E1) * C.Conf.Kd / C.Conf.T);
+    C.P := C.E * C.Conf.Kp;
+    C.I := C.I + (C.E * C.Conf.Kp * C.Conf.Ki + C.Sat) * C.Conf.T;
+    C.D := C.Conf.Kp * (C.E + (C.E - C.E1) * C.Conf.Kd / C.Conf.T);
+    C.Y := C.P + C.I + C.D;
+    if (C.Y < C.Conf.Sn)then
+      C.Sat := C.Conf.Sn - C.Y;
+    elsif (C.Y > C.Conf.Sp)then
+      C.Sat := C.Conf.Sp - C.Y;
+    else
+      C.Sat := 0.0;
+    end if;
+    return C.Y + C.Sat;
   end calculate_U;
 
   task body Control_Task_T is
@@ -94,17 +104,6 @@ package body PSU_Control is
       I_L2 := calculate_U (C => Controllers (PID_U_C2), W => Ctrl.Get_W_U_C2, Y => Sim.Get_U_C2);
       D_M1 := calculate_U (C => Controllers (PID_I_L1), W => I_L1, Y => sim.Get_I_L1);
       D_M2_5 := calculate_U (C => Controllers (PID_I_L2), W => I_L2, Y => sim.Get_I_L2);
-      -- Saturate (will be part of controller)
-      if (D_M1 > 1.0)then
-        D_M1 := 1.0;
-      elsif (D_M1 < 0.0)then
-        D_M1 := 0.0;
-      end if;
-      if (D_M2_5 > 1.0)then
-        D_M2_5 := 1.0;
-      elsif (D_M2_5 < 0.0)then
-        D_M2_5 := 0.0;
-      end if;
       -- Set for Simulation
       Sim.set_D_M1 (D_M1);
       Sim.set_D_M2_5 (D_M2_5);
