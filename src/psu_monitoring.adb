@@ -1,3 +1,4 @@
+pragma Profile(Ravenscar);
 pragma SPARK_Mode;
 
 with Ada.Real_Time; use Ada.Real_Time;
@@ -62,43 +63,61 @@ end Monitoring_Interface_T;
 
 task body Monitoring_Task_T is
     Period : constant Time_Span := Milliseconds(1);
-    Next_Time : Time;
-   begin
+    next_time : Time;
+begin
+    -- Initialisation of next execution time
+    next_time := Clock;
     -- Busy wait until configuration for monitor is set
     while monitoring_interface.is_all_config_set = False loop
-        Next_Time := Clock + Period;
-        delay until Next_Time;
+        -- next_time := next_time + Period;
+        -- delay until next_time;
+        null;
     end loop;
-
     -- Check monitored signals against configured values
     loop
-        delay until Next_Time;
-        Next_Time := Next_Time + Period;
         -- Check PFC intermediate voltage
-        -- @TODO refactor into a separate function
-        if monitoring_interface.get_monitor_pfc_voltage_config.monitoring_mode = mean_based then
-            if abs(monitoring_interface.get_monitor_pfc_voltage_config.mean - Sim.Get_U_C1) > monitoring_interface.get_monitor_pfc_voltage_config.maximum_deviation then
-                -- @TODO limits exceeded; shutdown controller
-                null;
-            end if;
-        elsif monitoring_interface.get_monitor_pfc_voltage_config.monitoring_mode = threshold_based then
-            if Sim.Get_U_C1 < monitoring_interface.get_monitor_pfc_voltage_config.lower_threshold or Sim.Get_U_C1 > monitoring_interface.get_monitor_pfc_voltage_config.upper_threshold then
-                -- @TODO limits exceeded; shutdown controller
-                null;
-            end if;
+        if is_within_limits(monitoring_interface.get_monitor_pfc_voltage_config, Sim.Get_U_C1) = False then
+            -- @TODO call a function from controller module that disables the power stage
+            null;
+        end if;
+        -- Check PFC inductor current
+        if is_within_limits(monitoring_interface.get_monitor_pfc_current_config, Sim.Get_I_L1) = False then
+            -- @TODO call a function from controller module that disables the power stage
+            null;
+        end if;
+        -- Check output voltage
+        if is_within_limits(monitoring_interface.get_monitor_output_voltage_config, Sim.Get_U_C2) = False then
+            -- @TODO call a function from controller module that disables the power stage
+            null;
+        end if;
+        -- Check output inductor current
+        if is_within_limits(monitoring_interface.get_monitor_output_current_config, Sim.Get_I_L2) = False then
+            -- @TODO call a function from controller module that disables the power stage
+            null;
         end if;
 
-        -- Check PFC inductor current
-
-        -- Check output voltage
-
-        -- Check output inductor current
-
-        Next_Time := Clock + Period;
+        next_time := next_time + Period;
         delay until Next_Time;
     end loop;
 end Monitoring_Task_T;
 
 monitoring_task : Monitoring_Task_T;
+
+function is_within_limits(config : in Monitor_Config_T; signal_value : in Float) return Boolean is
+    within_limits : Boolean := False;
+begin
+    case config.monitoring_mode is
+        when mean_based =>
+            if abs(config.mean - signal_value) < config.maximum_deviation then
+                within_limits := True;
+            end if;
+        when threshold_based =>
+            if signal_value >= config.lower_threshold or signal_value <= config.upper_threshold then
+                within_limits := True;
+            end if;
+    end case;
+
+    return within_limits;
+end is_within_limits;
    
 end PSU_Monitoring;
