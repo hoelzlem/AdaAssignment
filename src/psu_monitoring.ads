@@ -1,4 +1,5 @@
 pragma SPARK_Mode;
+
 package PSU_Monitoring is
 
 type Monitoring_Mode_T is (mean_based, threshold_based);
@@ -10,7 +11,7 @@ type Monitor_Config_T is record
     monitoring_mode : Monitoring_Mode_T;
     mean : Float_Signed1000;
     maximum_deviation : Float_Natural1000;
-    lower_treshold : Float_Signed1000;
+    lower_threshold : Float_Signed1000;
     upper_threshold : Float_Signed1000;
 end record;
 
