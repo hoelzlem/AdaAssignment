@@ -68,12 +68,14 @@ begin
     -- Initialisation of next execution time
     next_time := Clock;
     -- Busy wait until configuration for monitor is set
+    -- @TODO would the task yielding instantaneously be better? At the moment it is required to be preempted
     while monitoring_interface.is_all_config_set = False loop
         -- next_time := next_time + Period;
         -- delay until next_time;
         null;
     end loop;
     -- Check monitored signals against configured values
+    -- @TODO add some code that leaves some error margin for controller startup! Otherwise the controller would be overriden as soon as the monitoring tasks starts since the signals will always violate the limits during startup. Maybe some kind of timer that is reset when the signals stabilise within the limits. After shutting down the controller the monitoring system should allow at least one retry.
     loop
         -- Check PFC intermediate voltage
         if is_within_limits(monitoring_interface.get_monitor_pfc_voltage_config, Sim.Get_U_C1) = False then
