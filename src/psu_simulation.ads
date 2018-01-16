@@ -1,6 +1,10 @@
 pragma Profile (Ravenscar);
 package PSU_Simulation is
 
+  maxLoadValues : constant Integer := 2; -- Constant max number of load values
+  numLoadValues : Integer := 0; -- will indicate the actual number of load values. Updated by parser
+  type loadArray_T is array (Integer range 1 .. maxLoadValues, Integer range 1 .. 2) of Float;
+  
   type Sim_Config_T is record 
     L1     : Float := 1.0e-3;
     C1     : Float := 1.0e-3;
