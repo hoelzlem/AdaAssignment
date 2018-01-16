@@ -44,7 +44,8 @@ package PSU_Simulation is
     Conf      : Sim_Config_T;
     Conf_OK   : Boolean := False;
   end Simulation_I_T;
-  Sim : Simulation_I_T;
+
+Sim : Simulation_I_T;
   
 private
   
