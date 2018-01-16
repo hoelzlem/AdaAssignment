@@ -50,6 +50,7 @@ package PSU_Monitoring is
 private
     task type Monitoring_Task_T;
 
-    function is_within_limits(config : in Monitor_Config_T; signal_value : in Float) return Boolean;
+    procedure do_monitoring;
+    function is_within_limits(monitor_config : in Monitor_Config_T; signal_value : in Float) return Boolean;
 
 end PSU_Monitoring;
