@@ -30,7 +30,7 @@ begin
    Put_Line ("Please specify the path to the" &
                 "configuration file of the simulation : ");
    filePath_configFile := SU.To_Unbounded_String
-      ("C:\users\arola\obj\bad_config.txt");
+      ("good_config.txt");
    --  SU.To_Unbounded_String(Get_Line(Standard_Input));
    begin
       Open (File => configFT,
@@ -47,7 +47,7 @@ begin
 
    Put_Line ("Please specify the path to the load file of the simulation:");
    filePath_configFile := SU.To_Unbounded_String
-      ("C:\users\arola\obj\bad_load.txt");
+      ("bad_load.txt");
    --  SU.To_Unbounded_String(Get_Line(Standard_Input));
    begin
       Open (File => loadFT,
@@ -65,7 +65,7 @@ begin
    Put_Line ("Please specify the path where the output file" &
                 "of the simulation shall be created : ");
    filePath_logFile := SU.To_Unbounded_String
-      ("C:\users\arola\obj\out.txt");
+      ("out.txt");
    --  SU.To_Unbounded_String(Get_Line(Standard_Input));
    begin
       Create (File => outputFT,
