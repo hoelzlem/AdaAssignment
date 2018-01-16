@@ -26,6 +26,7 @@ package PSU_Simulation is
    
   protected type Simulation_I_T is
     entry     Wait_For_Config;
+    function  Is_Ready return Boolean;
     function  Get_Config return Sim_Config_T;
     function  Get_U_V1 return Float;
     function  Get_I_L1 return Float;
@@ -48,7 +49,8 @@ package PSU_Simulation is
     Conf      : Sim_Config_T;
     Conf_OK   : Boolean := False;
   end Simulation_I_T;
-  Sim : Simulation_I_T;
+
+Sim : Simulation_I_T;
   
 private
   
