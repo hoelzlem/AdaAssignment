@@ -83,18 +83,16 @@ begin
    parseConfig (configFT, PID_Conf_A, Sim_Config, configValid);
    parseLoad (loadFT, loadArray, loadValid, numLoadValues);
    if (configValid) then
-      Put_Line ("[ " & vt100_GREEN & "OK " & vt100_RESET &
-                   "]     Configuration is valid!");
-   else Put_Line ("[ " & vt100_RED & "ERROR " & vt100_RESET &
-                     "]  Configuration is invalid!");
+      Put_Line ("[ " & vt100_GREEN & "OK " & vt100_RESET & "]     Configuration is valid!");
+      Sim.Set_Config (Sim_Config);
+      Ctrl.Set_Config (PID_Conf_A);
+   else Put_Line ("[ " & vt100_RED & "ERROR " & vt100_RESET & "]  Configuration is invalid!");
       return;
    end if;
    if (loadValid) then
-      Put_Line ("[ " & vt100_GREEN & "OK" & vt100_RESET &
-                   " ]     Load definition is valid, contains "
-                & numLoadValues'Image & " values!");
-   else Put_Line ("[ " & vt100_RED & "ERROR " & vt100_RESET &
-                     "]  Load definition is invalid!");
+      Put_Line ("[ " & vt100_GREEN & "OK" & vt100_RESET & " ]     Load definition is valid, contains " & numLoadValues'Image & " values!");
+      Sim.Set_Load (loadArray);
+   else Put_Line ("[ " & vt100_RED & "ERROR " & vt100_RESET & "]  Load definition is invalid!");
       return;
    end if;
 

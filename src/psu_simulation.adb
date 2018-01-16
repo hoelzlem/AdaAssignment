@@ -6,6 +6,8 @@ with Ada.Numerics;
 with Ada.Text_IO;
 package body PSU_Simulation is
 
+   -- TODO check load config and use load
+
    protected body Simulation_I_T is
 
       function Is_Ready return Boolean is
