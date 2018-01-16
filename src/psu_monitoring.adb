@@ -80,33 +80,30 @@ begin
     end loop;
 end Monitoring_Task_T;
 
+-- Create task => system runs it
 monitoring_task : Monitoring_Task_T;
 
 procedure do_monitoring is
-begin
-    -- Check monitored signals against configured values
-    -- @TODO add some code that leaves some error margin for controller startup! Otherwise the controller would be overriden as soon as the monitoring tasks starts since the signals will always violate the limits during startup. Maybe some kind of timer that is reset when the signals stabilise within the limits. After shutting down the controller the monitoring system should allow at least one retry.
-    -- Check PFC intermediate voltage
-    if is_within_limits(monitoring_interface.get_monitor_pfc_voltage, Sim.Get_U_C1) = False then
-        -- @TODO call a function from controller module that disables the power stage
-        null;
-    end if;
-    -- Check PFC inductor current
-    if is_within_limits(monitoring_interface.get_monitor_pfc_current, Sim.Get_I_L1) = False then
-        -- @TODO call a function from controller module that disables the power stage
-        null;
-    end if;
-    -- Check output voltage
-    if is_within_limits(monitoring_interface.get_monitor_output_voltage, Sim.Get_U_C2) = False then
-        -- @TODO call a function from controller module that disables the power stage
-        null;
-    end if;
-    -- Check output inductor current
-    if is_within_limits(monitoring_interface.get_monitor_output_current, Sim.Get_I_L2) = False then
-        -- @TODO call a function from controller module that disables the power stage
-        null;
-    end if;
+begin    
+    -- Monitor PFC intermediate voltage
+    monitor_signal(monitoring_interface.get_monitor_pfc_voltage, Sim.Get_U_C1);
+    -- Monitor PFC inductor current
+    monitor_signal(monitoring_interface.get_monitor_pfc_current, Sim.Get_I_L1);
+    -- Monitor output voltage
+    monitor_signal(monitoring_interface.get_monitor_output_voltage, Sim.Get_U_C2);
+    -- Monitor output inductor current
+    monitor_signal(monitoring_interface.get_monitor_output_current, Sim.Get_I_L2);    
 end do_monitoring;
+
+procedure monitor_signal(monitor : in Monitor_T; signal_value : in Float) is
+begin
+    -- @TODO add some code that leaves some error margin for controller startup! Otherwise the controller would be overriden as soon as the monitoring tasks starts since the signals will always violate the limits during startup. Maybe some kind of timer that is reset when the signals stabilise within the limits. After shutting down the controller the monitoring system should allow at least one retry.
+    -- First check whether signal is within limits
+    if is_within_limits(monitor, signal_value) = False then
+        -- @TODO call a function from controller module that disables the power stage
+        null;
+    end if;
+end monitor_signal;
 
 function is_within_limits(monitor : in Monitor_T; signal_value : in Float) return Boolean is
     within_limits : Boolean := False;

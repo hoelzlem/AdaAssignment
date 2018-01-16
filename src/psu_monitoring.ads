@@ -6,6 +6,7 @@ with Ada.Real_Time; use Ada.Real_Time;
 package PSU_Monitoring is
 
     type Monitoring_Mode_T is (mean_based, threshold_based);
+    type Monitor_State_T is (startup, settling, active, shutdown);
     
     subtype Float_Natural1000 is Float range 0.0..1000.0;
     subtype Float_Signed1000 is Float range -1000.0..1000.0;
@@ -16,7 +17,12 @@ package PSU_Monitoring is
         maximum_deviation : Float_Natural1000 := 0.0;
         lower_threshold : Float_Signed1000 := 0.0;
         upper_threshold : Float_Signed1000 := 0.0;
-        maximum_violation_time : Time_Span := Milliseconds(5);
+        startup_time : Time_Span := Milliseconds(5);
+        settling_time : Time_Span := Milliseconds(2);
+        violation_time : Time_Span := Milliseconds(5);
+        retry_time : Time_Span := Milliseconds(100);
+        timer : Time_Span := Milliseconds(0);
+        state : Monitor_State_T := startup;
     end record;
 
     protected type Monitoring_Interface_T is
@@ -54,6 +60,7 @@ private
     task type Monitoring_Task_T;
 
     procedure do_monitoring;
+    procedure monitor_signal(monitor : in Monitor_T; signal_value : in Float);
     function is_within_limits(monitor : in Monitor_T; signal_value : in Float) return Boolean;
 
 end PSU_Monitoring;
