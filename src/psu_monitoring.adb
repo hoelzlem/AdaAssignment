@@ -71,6 +71,7 @@ begin
     next_time := Clock;
     -- Superloop
     loop
+        Put_Line("Run task monitoring");
         -- Load monitor configuration
         monitor_pfc_voltage.config := monitoring_interface.get_monitor_pfc_voltage_config;
         monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
@@ -108,24 +109,54 @@ begin
 
     case monitor.current_state is
         when startup =>
-            -- @TODO
-            null;
+            if is_within_limits(monitor, signal_value) = True then
+                monitor.next_state := settling;
+                monitor.timer := Milliseconds(0);
+            elsif monitor.timer >= monitor.config.startup_time then
+                monitor.next_state := shutdown;
+                monitor.timer := Milliseconds(0);
+            else
+                monitor.next_state := startup;
+                monitor.timer := monitor.timer + TASK_PERIOD;
+            end if;
+
         when settling =>
-            -- @TODO
-            null;
+            -- @TODO widen tolerance band for is_within_limits when state is settling
+            if is_within_limits(monitor, signal_value) = False and
+               monitor.timer >= monitor.config.settling_time then
+                monitor.next_state := shutdown;
+                monitor.timer := Milliseconds(0);
+            end if;
+
         when active =>
             if is_within_limits(monitor, signal_value) = False then
-                -- @TODO call a function from controller module that disables the power stage
                 monitor.next_state := alert;
+                monitor.timer := Milliseconds(0);
             else
                 monitor.next_state := active;
             end if;
+
         when alert =>
-            -- @TODO
-            null;
+            if is_within_limits(monitor, signal_value) = True then
+                monitor.next_state := settling;
+                monitor.timer := Milliseconds(0);
+            elsif monitor.timer >= monitor.config.violation_time then
+                monitor.next_state := shutdown;
+                monitor.timer := Milliseconds(0);
+            else
+                monitor.next_state := alert;
+                monitor.timer := monitor.timer + TASK_PERIOD;
+            end if;
+
         when shutdown =>
-            -- @TODO
-            null;
+            -- @TODO call a function that shuts down the controller
+            if monitor.timer >= monitor.config.retry_time then
+                monitor.next_state := startup;
+                monitor.timer := Milliseconds(0);
+            else
+                monitor.next_state := shutdown;
+                monitor.timer := monitor.timer + TASK_PERIOD;
+            end if;
     end case;
 end monitor_signal;
 
