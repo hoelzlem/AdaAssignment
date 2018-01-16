@@ -63,6 +63,11 @@ package body PSU_Simulation is
          return D_M2_5;
       end Get_D_M2_5;
 
+      function Get_Load return loadArray_T is
+      begin
+         return Loads;
+      end Get_Load;
+
       procedure Set_Config (Val : in Sim_Config_T) is
       begin
          Conf    := Val;
@@ -89,6 +94,11 @@ package body PSU_Simulation is
       begin
          Sim_Out := Val;
       end Set_Sim_Out;
+
+      procedure Set_Load (Val : in loadArray_T) is
+      begin
+         Loads := Val;
+      end Set_Load;
 
    end Simulation_I_T;
 

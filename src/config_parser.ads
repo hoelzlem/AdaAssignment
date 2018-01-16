@@ -5,6 +5,6 @@ with PSU_Control; use PSU_Control;
 
 package CONFIG_Parser is
 
-    procedure parseConfig (fileHandle : in File_Type; PID_Config : in out PID_Config_A_T; Sim_Config : in out Sim_Config_T; configValid : out Boolean);
-    procedure parseLoad (fileHandle : in File_Type; loadArray : out loadArray_T; loadValid : out Boolean);
+   procedure parseConfig (fileHandle : in File_Type; PID_Config : in out PID_Config_A_T; Sim_Config : in out Sim_Config_T; configValid : out Boolean);
+   procedure parseLoad (fileHandle : in File_Type; loadArray : out loadArray_T; loadValid : out Boolean; numLoadValues : out Integer);
 end CONFIG_Parser;
