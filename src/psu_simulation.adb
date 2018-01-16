@@ -13,6 +13,11 @@ package body PSU_Simulation is
       null;
     end Wait_For_Config;
 
+    function Is_Ready return Boolean is
+    begin
+      return Conf_OK;
+    end Is_Ready;
+
     function Get_Config return Sim_Config_T is
     begin
       return Conf;
