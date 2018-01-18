@@ -10,6 +10,8 @@ with PSU_Control; use PSU_Control;
 with CONFIG_Parser; use CONFIG_Parser;
 with global_constants; use global_constants;
 
+with PSU_Monitoring;
+
 procedure Main is
    package SU   renames Ada.Strings.Unbounded;
    package String_Vector is new Indefinite_Vectors (Natural, String);

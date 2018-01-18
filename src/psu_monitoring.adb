@@ -3,6 +3,7 @@ pragma SPARK_Mode;
 
 with Ada.Text_IO; use Ada.Text_IO;
 
+with PSU_Control; use PSU_Control;
 with PSU_Simulation; use PSU_Simulation;
 
 package body PSU_Monitoring is
@@ -103,6 +104,9 @@ package body PSU_Monitoring is
 
         case monitor.current_state is
             when startup =>
+                -- Activate controllers
+                Ctrl.Set_Safety_State(True);
+
                 if is_within_limits(monitor, signal_value) = True then
                     monitor.next_state := settling;
                     monitor.timer := Milliseconds(0);
@@ -146,7 +150,9 @@ package body PSU_Monitoring is
                 end if;
 
             when shutdown =>
-                -- @TODO call a function that shuts down the controller
+                -- Deactivate controllers
+                Ctrl.Set_Safety_State(False);
+
                 if monitor.timer >= monitor.config.retry_time then
                     monitor.next_state := startup;
                     monitor.timer := Milliseconds(0);
