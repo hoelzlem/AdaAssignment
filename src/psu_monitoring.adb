@@ -73,6 +73,7 @@ package body PSU_Monitoring is
             monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
             monitor_output_voltage.config := monitoring_interface.get_monitor_output_voltage_config;
             monitor_output_current.config := monitoring_interface.get_monitor_output_current_config;
+
             -- Check if module has been configured correctly
             -- Don't do anything otherwise
             if monitoring_interface.is_all_config_set = True then
@@ -98,7 +99,6 @@ package body PSU_Monitoring is
 
     procedure monitor_signal(monitor : in out Monitor_T; signal_value : in Float) is
     begin
-        -- Update monitor state
         monitor.current_state := monitor.next_state;
 
         case monitor.current_state is
@@ -115,9 +115,14 @@ package body PSU_Monitoring is
                 end if;
 
             when settling =>
-                if is_within_limits(monitor, signal_value) = False and monitor.timer >= monitor.config.settling_time then
+                if is_within_expanded_limits(monitor, signal_value) = False then
                     monitor.next_state := shutdown;
                     monitor.timer := Milliseconds(0);
+                elsif monitor.timer >= monitor.config.settling_time then
+                    monitor.next_state := active;
+                else
+                    monitor.next_state := settling;
+                    monitor.timer := monitor.timer + TASK_PERIOD;
                 end if;
 
             when active =>
@@ -154,52 +159,55 @@ package body PSU_Monitoring is
 
     function is_within_limits(monitor : in Monitor_T; signal_value : in Float) return Boolean is
         within_limits : Boolean := False;
+    begin
+        case monitor.config.monitoring_mode is
+            when mean_based =>
+                if abs(monitor.config.mean - signal_value) <= monitor.config.maximum_deviation then
+                    within_limits := True;
+                end if;
+
+            when threshold_based =>
+                if signal_value >= monitor.config.lower_threshold or signal_value <= monitor.config.upper_threshold then
+                    within_limits := True;
+                end if;
+        end case;
+
+        return within_limits;
+    end is_within_limits;
+
+    function is_within_expanded_limits(monitor : in Monitor_T; signal_value : in Float) return Boolean is
+        within_expanded_limits : Boolean := False;
 
         expanded_lower_threshold : Float_Signed1000 := 0.0;
         expanded_upper_threshold : Float_Signed1000 := 0.0;
     begin
         case monitor.config.monitoring_mode is
             when mean_based =>
-                case monitor.current_state is
-                    when settling =>
-                        if abs(monitor.config.mean - signal_value) < (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion) then
-                            within_limits := True;
-                        end if;
-
-                    when others =>
-                        if abs(monitor.config.mean - signal_value) < monitor.config.maximum_deviation then
-                            within_limits := True;
-                        end if;
-                end case;
+                if abs(monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion) then
+                    within_expanded_limits := True;
+                end if;
 
             when threshold_based =>
-                case monitor.current_state is
-                    when settling =>
-                        -- Calculate expanded thresholds
-                        if monitor.config.lower_threshold >= 0.0 then
-                            expanded_lower_threshold := monitor.config.lower_threshold / monitor.config.settling_tolerance_expansion;
-                        else
-                            expanded_lower_threshold := monitor.config.lower_threshold * monitor.config.settling_tolerance_expansion;                        
-                        end if;
+                -- Calculate expanded thresholds
+                if monitor.config.lower_threshold >= 0.0 then
+                    expanded_lower_threshold := monitor.config.lower_threshold / monitor.config.settling_tolerance_expansion;
+                else
+                    expanded_lower_threshold := monitor.config.lower_threshold * monitor.config.settling_tolerance_expansion;                        
+                end if;
 
-                        if monitor.config.upper_threshold >= 0.0 then
-                            expanded_upper_threshold := monitor.config.upper_threshold * monitor.config.settling_tolerance_expansion;
-                        else
-                            expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;                        
-                        end if;
-                        -- Check limits with expanded thresholds
-                        if signal_value >= expanded_lower_threshold or signal_value <= expanded_upper_threshold then
-                            within_limits := True;
-                        end if;
+                if monitor.config.upper_threshold >= 0.0 then
+                    expanded_upper_threshold := monitor.config.upper_threshold * monitor.config.settling_tolerance_expansion;
+                else
+                    expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;                        
+                end if;
 
-                    when others =>
-                        if signal_value >= monitor.config.lower_threshold or signal_value <= monitor.config.upper_threshold then
-                            within_limits := True;
-                        end if;
-                end case;
+                -- Check limits with expanded thresholds
+                if signal_value >= expanded_lower_threshold or signal_value <= expanded_upper_threshold then
+                    within_expanded_limits := True;
+                end if;
         end case;
 
-        return within_limits;
-    end is_within_limits;
+        return within_expanded_limits;
+    end is_within_expanded_limits;
 
 end PSU_Monitoring;

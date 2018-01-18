@@ -81,5 +81,6 @@ private
     procedure do_monitoring;
     procedure monitor_signal(monitor : in out Monitor_T; signal_value : in Float);
     function is_within_limits(monitor : in Monitor_T; signal_value : in Float) return Boolean;
+    function is_within_expanded_limits(monitor : in Monitor_T; signal_value : in Float) return Boolean;
 
 end PSU_Monitoring;
