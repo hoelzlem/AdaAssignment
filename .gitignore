@@ -6,3 +6,6 @@
 
 # Object folder
 obj/
+
+# Simons scripts
+build_run.bat

@@ -8,15 +8,20 @@ package PSU_Monitoring is
     type Monitoring_Mode_T is (mean_based, threshold_based);
     type Monitor_State_T is (startup, settling, active, alert, shutdown);
     
-    subtype Float_Natural1000 is Float range 0.0..1000.0;
-    subtype Float_Signed1000 is Float range -1000.0..1000.0;
+    subtype Float_Natural1000 is Float range 0.0..1_000.0;
+    subtype Float_Positive10 is Float range 1.0..10.0;
+    subtype Float_Signed1000 is Float range -1_000.0..1_000.0;
 
     type Monitor_Config_T is record
         monitoring_mode : Monitoring_Mode_T := mean_based;
+
         mean : Float_Signed1000 := 0.0;
         maximum_deviation : Float_Natural1000 := 0.0;
         lower_threshold : Float_Signed1000 := 0.0;
         upper_threshold : Float_Signed1000 := 0.0;
+
+        settling_tolerance_expansion : Float_Positive10 := 1.2;
+
         startup_time : Time_Span := Milliseconds(5);
         settling_time : Time_Span := Milliseconds(2);
         violation_time : Time_Span := Milliseconds(5);
