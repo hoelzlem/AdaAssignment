@@ -1,18 +1,17 @@
 pragma Profile (Ravenscar);
 --  with System.Dim.Mks - Would be nice to use here
-with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Numerics.Elementary_Functions;
+with global_constants; use global_constants;
 with Ada.Numerics;
 with Ada.Text_IO;
+with Ada.Real_Time; use Ada.Real_Time;
 package body PSU_Simulation is
-
-   -- TODO check load config and use load
 
    protected body Simulation_I_T is
 
       function Is_Ready return Boolean is
       begin
-         return Conf_OK;
+         return Conf_OK and Load_OK;
       end Is_Ready;
 
       function Get_Config return Sim_Config_T is
@@ -76,12 +75,6 @@ package body PSU_Simulation is
          Conf_OK := True;
       end Set_Config;
 
-      procedure Set_D (M1, M2_5 : in Float) is
-      begin
-         D_M1 := M1;
-         D_M2_5 := M2_5;
-      end Set_D;
-
       procedure Set_D_M1 (Val : in Float) is
       begin
          D_M1 := Val;
@@ -100,49 +93,72 @@ package body PSU_Simulation is
       procedure Set_Load (Val : in loadArray_T) is
       begin
          Loads := Val;
+         Load_OK := True;
       end Set_Load;
 
    end Simulation_I_T;
 
+   function Get_Load_Actual (ST : Time; LO : loadArray_T) return Float is
+      Run_Time : Time_Span := Time_Span_First;
+   begin
+      Run_Time := Clock - ST;
+      for i in LO'Range (1) loop
+         --  Return previous value if timestamp is not reached jet
+         if (Microseconds (Integer (RT_MUL_S2US * LO (i, 1))) > Run_Time) then
+            --  Return Inf if Start value not at time 0
+            if (i - 1 in LO'Range (1)) then
+               return LO (2, i - 1);
+            else
+               return Float'Last;
+            end if;
+         end if;
+      end loop;
+      --  Return Inf if no further load is specified
+      return Float'Last;
+   end Get_Load_Actual;
+
    task body Simulation_Task_T is
       Angle      : Float := 0.0;
       Load       : Float := 100.0;
-      Next_Time  : Time := Clock;
+      Load_A     : loadArray_T;
+      Start_Time : Time := Time_First;
+      Next_Time  : Time := Time_First;
       Conf       : Sim_Config_T;
       Act, Prev  : Sim_Output_T;
    begin
-      Next_Time := Clock;
+      Next_Time  := Clock;
+      --  Wait for configuration and load settings
       while (not Sim.Is_Ready)
       loop
          Next_Time := Next_Time + Milliseconds (200);
          delay until Next_Time;
       end loop;
-      Conf := Sim.Get_Config;
+      Ada.Text_IO.Put_Line ("Sim task active");
+      --  Aquire settings (done once only)
+      Conf       := Sim.Get_Config;
+      Load_A     := Sim.Get_Load;
+      Start_Time := Clock;
       loop
-         Act.I_L1   := Prev.I_L1 +
-            (Sim.Get_D_M1 * abs (Prev.U_V1) -
-             (1.0 - Sim.Get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
-         Act.I_Load := Prev.U_C2 / Load;
-         Act.I_L2   := Prev.I_L2 +
-            (Sim.Get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;
+         --  Get new new value for load and calculate the electrical terms
+         Load := Get_Load_Actual (Start_Time, Load_A);
+         Ada.Text_IO.Put_Line ("Load set to: " & Load'Image);
+         Act.I_L1   := Prev.I_L1 + (Sim.Get_D_M1 * abs (Prev.U_V1) - (1.0 - Sim.Get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
+         Act.I_L2   := Prev.I_L2 + (Sim.Get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;
          Act.U_C2   := (Prev.I_L2 - Prev.I_Load) * Conf.T / Conf.C2;
-         Act.U_C1   := (Prev.I_L1 - Sim.Get_D_M2_5 * Prev.I_L2)
-            * Conf.T / Conf.C1;
+         Act.U_C1   := (Prev.I_L1 - Sim.Get_D_M2_5 * Prev.I_L2) * Conf.T / Conf.C1;
+         Act.I_Load := Prev.U_C2 / Load;
+         --  Check for DC voltage and calculate mains voltage
          if (Conf.f_V1 > 0.0001) then
-            Angle    := Float'Remainder
-               ((Angle + Conf.T * Conf.f_V1 * 2.0 * Ada.Numerics.Pi),
-                (2.0 * Ada.Numerics.Pi));
-            Act.U_V1 := Conf.Up_V1 *
-               Ada.Numerics.Elementary_Functions.Sin (Angle);
+            Angle    := Float'Remainder ((Angle + Conf.T * Conf.f_V1 * 2.0 * Ada.Numerics.Pi), (2.0 * Ada.Numerics.Pi));
+            Act.U_V1 := Conf.Up_V1 * Ada.Numerics.Elementary_Functions.Sin (Angle);
          else
             Act.U_V1 := Conf.Up_V1;
          end if;
+         --  Set the output
+         Ada.Text_IO.Put_Line ("V1: " & Act.U_V1'Image & " UC1: " & Act.U_C1'Image & " UC2: " & Act.U_C2'Image);
+         Prev      := Act;
          Sim.Set_Sim_Out (Act);
-         Ada.Text_IO.Put (Act.U_V1'Image & "  " &
-                             Act.U_C1'Image & "  " & Act.U_C2'Image);
-         Ada.Text_IO.Put_Line ("");
-         Prev       := Act;
-         Next_Time := Next_Time + Milliseconds (Integer (1.0e6 * Conf.T));
+         Next_Time := Next_Time + Microseconds (Integer (RT_MUL_S2US * Conf.T));
          delay until Next_Time;
       end loop;
    end Simulation_Task_T;

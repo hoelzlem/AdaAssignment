@@ -2,13 +2,47 @@
 pragma Profile (Ravenscar);
 
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
-
+with Ada.Command_Line;
 with global_constants; use global_constants;
 
 package body CONFIG_Parser is
 
    package SU   renames Ada.Strings.Unbounded;
+
+   procedure Open_File (File : in out File_Type; Name : in SU.Unbounded_String) is
+   begin
+      begin
+         Open (File => File,
+               Mode => In_File,
+               Name => SU.To_String (Name));
+      exception
+         when others =>
+            Put_Line ("[ " & vt100_RED & "ERROR " & vt100_RESET & "]  Could not find or open the specified file '" & SU.To_String (Name) & "'!");
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            return;
+      end;
+   end Open_File;
+
+   procedure Create_File (File : in out File_Type; Name : in SU.Unbounded_String) is
+   begin
+      begin
+         Create (File => File,
+                 Mode => Out_File,
+                 Name => SU.To_String (Name));
+      exception
+         when others =>
+            Put_Line ("[ " & vt100_RED & "ERROR " & vt100_RESET & "]  Could not create specified file named '" & SU.To_String (Name) & "'.");
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            return;
+      end;
+   end Create_File;
+
+   procedure Close_File  (File : in out File_Type) is
+   begin
+      if Is_Open (File) then
+         Close (File);
+      end if;
+   end Close_File;
 
    procedure parseConfig (fileHandle : in File_Type; PID_Config : in out PID_Config_A_T; Sim_Config : in out Sim_Config_T; configValid : out Boolean) is
 

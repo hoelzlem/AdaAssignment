@@ -5,7 +5,7 @@ project Pfc_Psu is
    for Main use ("main.adb");
 
    package Compiler is
-      for Switches ("ada") use ("-gnatyy", "-gnatwa.n", "-gnatf", "-gnato", "-gnata", "-gnatVa", "-gnatyyM500");
+      for Switches ("ada") use ("-gnatyyy", "-gnatwa.n", "-gnatf", "-gnato", "-gnata", "-gnatVa", "-gnatyyyM500");
    end Compiler;
 
    package Linker is
