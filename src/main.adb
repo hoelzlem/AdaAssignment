@@ -11,6 +11,7 @@ with CONFIG_Parser; use CONFIG_Parser;
 with global_constants; use global_constants;
 
 with PSU_Monitoring;
+with simple_monitoring;
 
 procedure Main is
    package SU   renames Ada.Strings.Unbounded;
@@ -107,4 +108,7 @@ begin
    if Is_Open (outputFT) then
       Close (outputFT);
    end if;
+
+   --  @TODO add code that configures the monitoring module
+   --  The module is automatically started after full configuration
 end Main;
