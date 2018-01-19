@@ -61,7 +61,7 @@ package body PSU_Monitoring is
 
    end Monitoring_Interface_T;
 
-   task body Monitoring_Task_T is
+   task body monitoring_task is
       next_time : Time;
    begin
       --  Initialisation of next execution time
@@ -77,14 +77,14 @@ package body PSU_Monitoring is
 
          --  Check if module has been configured correctly
          --  Don't do anything otherwise
-         if monitoring_interface.is_all_config_set = True then
+         if monitoring_interface.is_all_config_set then
             do_monitoring;
          end if;
 
          next_time := next_time + TASK_PERIOD;
          delay until next_time;
       end loop;
-   end Monitoring_Task_T;
+   end monitoring_task;
 
    procedure do_monitoring is
    begin
@@ -107,7 +107,7 @@ package body PSU_Monitoring is
             --  Activate controllers
             Ctrl.Set_Safety_State (True);
 
-            if is_within_limits (monitor, signal_value) = True then
+            if is_within_limits (monitor, signal_value) then
                monitor.next_state := settling;
                monitor.timer := Milliseconds (0);
             elsif monitor.timer >= monitor.config.startup_time then
@@ -138,7 +138,7 @@ package body PSU_Monitoring is
             end if;
 
          when alert =>
-            if is_within_limits (monitor, signal_value) = True then
+            if is_within_limits (monitor, signal_value) then
                monitor.next_state := settling;
                monitor.timer := Milliseconds (0);
             elsif monitor.timer >= monitor.config.violation_time then

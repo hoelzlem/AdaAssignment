@@ -2,6 +2,7 @@ pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
 with Ada.Real_Time; use Ada.Real_Time;
+with System;
 
 package PSU_Monitoring is
 
@@ -67,9 +68,9 @@ package PSU_Monitoring is
    monitoring_interface : Monitoring_Interface_T;
 
 private
-   task type Monitoring_Task_T;
-
-   monitoring_task : Monitoring_Task_T;
+   task monitoring_task is
+      pragma Priority (System.Priority'First);
+   end monitoring_task;
 
    TASK_PERIOD : constant Time_Span := Milliseconds (100);
 
