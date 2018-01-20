@@ -6,13 +6,13 @@ package body PSU_Logging is
 
    procedure csv_put (File : in File_Type; Item : in Item_Type_t) is
    begin
-      Put (File, Item_Type_t'Image (Item));
+      Put (File, Image (Item));
       Put (File, ", ");
    end csv_put;
 
-   procedure csv_put_float is new csv_put (Item_Type_t => Float);
-   procedure csv_put_duration is new csv_put (Item_Type_t => Duration);
-   procedure csv_put_signal_name is new csv_put (Item_Type_t => logged_signal_names_t);
+   procedure csv_put_float is new csv_put (Item_Type_t => Float, Image => Float'Image);
+   procedure csv_put_duration is new csv_put (Item_Type_t => Duration, Image => Duration'Image);
+   procedure csv_put_signal_name is new csv_put (Item_Type_t => logged_signal_names_t, Image => logged_signal_names_t'Image);
 
    task body logging_task is
       START_TIME : constant Time := Clock;

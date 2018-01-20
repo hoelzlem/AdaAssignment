@@ -25,6 +25,7 @@ private
 
    generic
       type Item_Type_t is private;
+      with function Image (Item : Item_Type_t) return String;
       procedure csv_put (File : in File_Type; Item : in Item_Type_t);
 
    procedure write_header (File : in File_Type);
