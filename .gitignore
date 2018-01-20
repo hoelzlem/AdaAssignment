@@ -6,3 +6,6 @@
 
 # Object folder
 obj/
+
+# Log file
+PSU.log
