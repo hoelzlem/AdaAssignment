@@ -9,3 +9,6 @@ obj/
 
 # Simons scripts
 build_run.bat
+
+# Log file
+PSU.log
