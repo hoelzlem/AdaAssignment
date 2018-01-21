@@ -10,6 +10,9 @@ with PSU_Control; use PSU_Control;
 with CONFIG_Parser; use CONFIG_Parser;
 with global_constants; use global_constants;
 
+with PSU_Monitoring;
+with simple_monitoring;
+
 procedure Main is
    package SU   renames Ada.Strings.Unbounded;
    package String_Vector is new Indefinite_Vectors (Natural, String);
@@ -69,5 +72,9 @@ begin
    Close_File (configFT);
    Close_File (loadFT);
    Close_File (outputFT);
+
+   --  @TODO add code that configures the monitoring module
+   --  The module is automatically started after full configuration
+
 end Main;
 
