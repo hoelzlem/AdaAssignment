@@ -11,7 +11,6 @@ with CONFIG_Parser; use CONFIG_Parser;
 with global_constants; use global_constants;
 
 with PSU_Monitoring;
-with simple_monitoring;
 with PSU_Logging;
 
 procedure Main is
