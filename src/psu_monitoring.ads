@@ -1,6 +1,8 @@
 pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
+pragma Partition_Elaboration_Policy (Sequential);
+
 with Ada.Real_Time; use Ada.Real_Time;
 with System;
 

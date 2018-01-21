@@ -61,42 +61,60 @@ package body PSU_Monitoring is
 
    end Monitoring_Interface_T;
 
-   task body monitoring_task is
-      next_time : Time;
+   function is_within_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
+      within_limits : Boolean := False;
    begin
-      --  Initialisation of next execution time
-      next_time := Clock;
-      --  Superloop
-      loop
-         Put_Line ("Run task monitoring");
-         --  Load monitor configuration
-         monitor_pfc_voltage.config := monitoring_interface.get_monitor_pfc_voltage_config;
-         monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
-         monitor_output_voltage.config := monitoring_interface.get_monitor_output_voltage_config;
-         monitor_output_current.config := monitoring_interface.get_monitor_output_current_config;
+      case monitor.config.monitoring_mode is
+         when mean_based =>
+            if abs (monitor.config.mean - signal_value) <= monitor.config.maximum_deviation then
+               within_limits := True;
+            end if;
 
-         --  Check if module has been configured correctly
-         --  Don't do anything otherwise
-         if monitoring_interface.is_all_config_set then
-            do_monitoring;
-         end if;
+         when threshold_based =>
+            if signal_value >= monitor.config.lower_threshold or signal_value <= monitor.config.upper_threshold then
+               within_limits := True;
+            end if;
+      end case;
 
-         next_time := next_time + TASK_PERIOD;
-         delay until next_time;
-      end loop;
-   end monitoring_task;
+      return within_limits;
 
-   procedure do_monitoring is
+   end is_within_limits;
+
+   function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
+      within_expanded_limits : Boolean := False;
+
+      expanded_lower_threshold : Float_Signed1000 := 0.0;
+      expanded_upper_threshold : Float_Signed1000 := 0.0;
    begin
-      --  Monitor PFC intermediate voltage
-      monitor_signal (monitor_pfc_voltage, Sim.Get_U_C1);
-      --  Monitor PFC inductor current
-      monitor_signal (monitor_pfc_current, Sim.Get_I_L1);
-      --  Monitor output voltage
-      monitor_signal (monitor_output_voltage, Sim.Get_U_C2);
-      --  Monitor output inductor current
-      monitor_signal (monitor_output_current, Sim.Get_I_L2);
-   end do_monitoring;
+      case monitor.config.monitoring_mode is
+         when mean_based =>
+            if abs (monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion) then
+               within_expanded_limits := True;
+            end if;
+
+         when threshold_based =>
+            --  Calculate expanded thresholds
+            if monitor.config.lower_threshold >= 0.0 then
+               expanded_lower_threshold := monitor.config.lower_threshold / monitor.config.settling_tolerance_expansion;
+            else
+               expanded_lower_threshold := monitor.config.lower_threshold * monitor.config.settling_tolerance_expansion;
+            end if;
+
+            if monitor.config.upper_threshold >= 0.0 then
+               expanded_upper_threshold := monitor.config.upper_threshold * monitor.config.settling_tolerance_expansion;
+            else
+               expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;
+            end if;
+
+            --  Check limits with expanded thresholds
+            if signal_value >= expanded_lower_threshold or signal_value <= expanded_upper_threshold then
+               within_expanded_limits := True;
+            end if;
+      end case;
+
+      return within_expanded_limits;
+
+   end is_within_expanded_limits;
 
    procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float) is
    begin
@@ -163,59 +181,41 @@ package body PSU_Monitoring is
       end case;
    end monitor_signal;
 
-   function is_within_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
-      within_limits : Boolean := False;
+   procedure do_monitoring is
    begin
-      case monitor.config.monitoring_mode is
-         when mean_based =>
-            if abs (monitor.config.mean - signal_value) <= monitor.config.maximum_deviation then
-               within_limits := True;
-            end if;
+      --  Monitor PFC intermediate voltage
+      monitor_signal (monitor_pfc_voltage, Sim.Get_U_C1);
+      --  Monitor PFC inductor current
+      monitor_signal (monitor_pfc_current, Sim.Get_I_L1);
+      --  Monitor output voltage
+      monitor_signal (monitor_output_voltage, Sim.Get_U_C2);
+      --  Monitor output inductor current
+      monitor_signal (monitor_output_current, Sim.Get_I_L2);
+   end do_monitoring;
 
-         when threshold_based =>
-            if signal_value >= monitor.config.lower_threshold or signal_value <= monitor.config.upper_threshold then
-               within_limits := True;
-            end if;
-      end case;
-
-      return within_limits;
-
-   end is_within_limits;
-
-   function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
-      within_expanded_limits : Boolean := False;
-
-      expanded_lower_threshold : Float_Signed1000 := 0.0;
-      expanded_upper_threshold : Float_Signed1000 := 0.0;
+   task body monitoring_task is
+      next_time : Time;
    begin
-      case monitor.config.monitoring_mode is
-         when mean_based =>
-            if abs (monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion) then
-               within_expanded_limits := True;
-            end if;
+      --  Initialisation of next execution time
+      next_time := Clock;
+      --  Superloop
+      loop
+         Put_Line ("Run task monitoring");
+         --  Load monitor configuration
+         monitor_pfc_voltage.config := monitoring_interface.get_monitor_pfc_voltage_config;
+         monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
+         monitor_output_voltage.config := monitoring_interface.get_monitor_output_voltage_config;
+         monitor_output_current.config := monitoring_interface.get_monitor_output_current_config;
 
-         when threshold_based =>
-            --  Calculate expanded thresholds
-            if monitor.config.lower_threshold >= 0.0 then
-               expanded_lower_threshold := monitor.config.lower_threshold / monitor.config.settling_tolerance_expansion;
-            else
-               expanded_lower_threshold := monitor.config.lower_threshold * monitor.config.settling_tolerance_expansion;
-            end if;
+         --  Check if module has been configured correctly
+         --  Don't do anything otherwise
+         if monitoring_interface.is_all_config_set then
+            do_monitoring;
+         end if;
 
-            if monitor.config.upper_threshold >= 0.0 then
-               expanded_upper_threshold := monitor.config.upper_threshold * monitor.config.settling_tolerance_expansion;
-            else
-               expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;
-            end if;
-
-            --  Check limits with expanded thresholds
-            if signal_value >= expanded_lower_threshold or signal_value <= expanded_upper_threshold then
-               within_expanded_limits := True;
-            end if;
-      end case;
-
-      return within_expanded_limits;
-
-   end is_within_expanded_limits;
+         next_time := next_time + TASK_PERIOD;
+         delay until next_time;
+      end loop;
+   end monitoring_task;
 
 end PSU_Monitoring;
