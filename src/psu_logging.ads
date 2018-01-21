@@ -28,6 +28,11 @@ private
       with function Image (Item : Item_Type_t) return String;
       procedure csv_put (File : in File_Type; Item : in Item_Type_t);
 
+   generic
+      type Item_Type_t is private;
+      with function Image (Item : Item_Type_t) return String;
+      procedure csv_end_line (File : in File_Type; Item : in Item_Type_t);
+
    procedure write_header (File : in File_Type);
    procedure write_current_data (File : in File_Type; timestamp : in Duration);
 
