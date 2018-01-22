@@ -83,8 +83,8 @@ package body PSU_Monitoring is
    function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
       within_expanded_limits : Boolean := False;
 
-      expanded_lower_threshold : Float_Signed1000 := 0.0;
-      expanded_upper_threshold : Float_Signed1000 := 0.0;
+      expanded_lower_threshold : Float_Signed1000;
+      expanded_upper_threshold : Float_Signed1000;
    begin
       case monitor.config.monitoring_mode is
          when mean_based =>
@@ -195,6 +195,8 @@ package body PSU_Monitoring is
 
    task body monitoring_task is
       next_time : Time;
+      --  See https://goo.gl/NBXa7y
+      all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
    begin
       --  Initialisation of next execution time
       next_time := Clock;
@@ -209,7 +211,7 @@ package body PSU_Monitoring is
 
          --  Check if module has been configured correctly
          --  Don't do anything otherwise
-         if monitoring_interface.is_all_config_set then
+         if all_config_is_set then
             do_monitoring;
          end if;
 
