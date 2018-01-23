@@ -195,8 +195,6 @@ package body PSU_Monitoring is
 
    task body monitoring_task is
       next_time : Time;
-      --  See https://goo.gl/NBXa7y
-      all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
    begin
       --  Initialisation of next execution time
       next_time := Clock;
@@ -209,11 +207,16 @@ package body PSU_Monitoring is
          monitor_output_voltage.config := monitoring_interface.get_monitor_output_voltage_config;
          monitor_output_current.config := monitoring_interface.get_monitor_output_current_config;
 
-         --  Check if module has been configured correctly
-         --  Don't do anything otherwise
-         if all_config_is_set then
-            do_monitoring;
-         end if;
+         declare
+            --  See https://goo.gl/NBXa7y
+            all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
+         begin
+            --  Check if module has been configured correctly
+            --  Don't do anything otherwise
+            if all_config_is_set then
+               do_monitoring;
+            end if;
+         end;
 
          next_time := next_time + TASK_PERIOD;
          delay until next_time;
