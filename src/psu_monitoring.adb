@@ -71,7 +71,7 @@ package body PSU_Monitoring is
             end if;
 
          when threshold_based =>
-            if signal_value >= monitor.config.lower_threshold or signal_value <= monitor.config.upper_threshold then
+            if signal_value >= monitor.config.lower_threshold and signal_value <= monitor.config.upper_threshold then
                within_limits := True;
             end if;
       end case;
@@ -106,8 +106,10 @@ package body PSU_Monitoring is
                expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;
             end if;
 
+            pragma Assert (expanded_lower_threshold < expanded_upper_threshold);
+
             --  Check limits with expanded thresholds
-            if signal_value >= expanded_lower_threshold or signal_value <= expanded_upper_threshold then
+            if signal_value >= expanded_lower_threshold and signal_value <= expanded_upper_threshold then
                within_expanded_limits := True;
             end if;
       end case;
@@ -118,9 +120,21 @@ package body PSU_Monitoring is
 
    procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float) is
    begin
+      declare
+         all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
+      begin
+         pragma Assert (all_config_is_set);
+      end;
+
       monitor.current_state := monitor.next_state;
 
       case monitor.current_state is
+         when reset =>
+            --  Deactivate controllers
+            Ctrl.Set_Safety_State (False);
+
+            monitor.next_state := startup;
+            monitor.timer := Milliseconds (0);
          when startup =>
             --  Activate controllers
             Ctrl.Set_Safety_State (True);
@@ -182,26 +196,28 @@ package body PSU_Monitoring is
    end monitor_signal;
 
    procedure do_monitoring is
+      U_C1 : constant Float := Sim.Get_U_C1;
+      I_L1 : constant Float := Sim.Get_I_L1;
+      U_C2 : constant Float := Sim.Get_U_C2;
+      I_L2 : constant Float := Sim.Get_I_L2;
    begin
       --  Monitor PFC intermediate voltage
-      monitor_signal (monitor_pfc_voltage, Sim.Get_U_C1);
+      monitor_signal (monitor_pfc_voltage, U_C1);
       --  Monitor PFC inductor current
-      monitor_signal (monitor_pfc_current, Sim.Get_I_L1);
+      monitor_signal (monitor_pfc_current, I_L1);
       --  Monitor output voltage
-      monitor_signal (monitor_output_voltage, Sim.Get_U_C2);
+      monitor_signal (monitor_output_voltage, U_C2);
       --  Monitor output inductor current
-      monitor_signal (monitor_output_current, Sim.Get_I_L2);
+      monitor_signal (monitor_output_current, I_L2);
    end do_monitoring;
 
    task body monitoring_task is
-      next_time : Time;
+      next_time : Time := Clock;
    begin
-      --  Initialisation of next execution time
-      next_time := Clock;
-      --  Superloop
+
       loop
          Put_Line ("Run task monitoring");
-         --  Load monitor configuration
+         --  Fetch monitor configuration
          monitor_pfc_voltage.config := monitoring_interface.get_monitor_pfc_voltage_config;
          monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
          monitor_output_voltage.config := monitoring_interface.get_monitor_output_voltage_config;
@@ -211,8 +227,6 @@ package body PSU_Monitoring is
             --  See https://goo.gl/NBXa7y
             all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
          begin
-            --  Check if module has been configured correctly
-            --  Don't do anything otherwise
             if all_config_is_set then
                do_monitoring;
             end if;
