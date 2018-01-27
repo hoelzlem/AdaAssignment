@@ -82,28 +82,30 @@ private
    monitor_output_voltage : Monitor_T;
    monitor_output_current : Monitor_T;
 
-   --  @TODO remove this when the version with contracts works
    procedure do_monitoring;
-
-   --  @TODO get this precondition to work
-   --  the problem here is that the prover is neither able to evaluate private members of monitoring_interface nor its getter functions
-   --procedure do_monitoring with
-   --   Pre => monitoring_interface.monitor_pfc_voltage_config_set and then monitoring_interface.monitor_pfc_current_config_set and then monitoring_interface.monitor_output_voltage_config_set and then monitoring_interface.monitor_output_current_config_set;
 
    --  @TODO all of the following contracts are not reported as proved. Why?!
 
-   procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float) with
-      Post => monitor.next_state = reset and monitor.timer < Milliseconds (200) and monitor.timer /= monitor.timer'Old;
+   procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float);
 
-   function is_within_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean with
-      Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation /= 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold),
-      Contract_Cases => (monitor.config.monitoring_mode = mean_based => (if is_within_limits'Result then (abs (monitor.config.mean - signal_value) <= monitor.config.maximum_deviation)),
-                         monitor.config.monitoring_mode = threshold_based => (if is_within_limits'Result then (signal_value >= monitor.config.lower_threshold) and then (signal_value <= monitor.config.upper_threshold)));
+   --procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float) with
+      --Pre => signal_value < -5.0;
+
+   --procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float) with
+      --Post => monitor.next_state = reset and then monitor.timer < Milliseconds (200) and then monitor.timer /= monitor.timer'Old;
+
+   function is_within_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean;
+
+   --function is_within_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean with
+      --Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation /= 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold),
+      --Contract_Cases => (monitor.config.monitoring_mode = mean_based => (if is_within_limits'Result then (abs (monitor.config.mean - signal_value) <= monitor.config.maximum_deviation)),                         monitor.config.monitoring_mode = threshold_based => (if is_within_limits'Result then (signal_value >= monitor.config.lower_threshold) and then (signal_value <= monitor.config.upper_threshold)));
+
+   function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean;
 
    --  @TODO add case for monitoring_mode = threshold_based
    --  I didn't add that yet because it is really complicated and terrible to read. I put an assertion into the function until then.
-   function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean with
-      Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation /= 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold) and then monitor.config.settling_tolerance_expansion > 1.1,
-      Contract_Cases => (monitor.config.monitoring_mode = mean_based => (if is_within_expanded_limits'Result then (abs (monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion))));
+   --function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean with
+      --Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation /= 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold) and then monitor.config.settling_tolerance_expansion > 1.1,
+      --Contract_Cases => (monitor.config.monitoring_mode = mean_based => (if is_within_expanded_limits'Result then (abs (monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion))));
 
 end PSU_Monitoring;

@@ -1,4 +1,9 @@
 pragma Profile (Ravenscar);
+pragma SPARK_Mode;
+
+--  See https://goo.gl/QQ8HAA
+pragma Partition_Elaboration_Policy (Sequential);
+
 with Ada.Real_Time;
 package PSU_Simulation is
 
@@ -27,11 +32,15 @@ package PSU_Simulation is
    protected type Simulation_I_T is
       function  Is_Ready return Boolean;                --  Synchronize threads at startup (returns true when everything is configured)
       function  Get_Config return Sim_Config_T;         --  Get the hardware configuration of this simulation
-      function  Get_I_L1 return Float;                  --  Get the current through L1
-      function  Get_I_L2 return Float;                  --  Get the current through L2
+      function  Get_I_L1 return Float
+         with Annotate => (GNATprove, Terminating);     --  Get the current through L1
+      function  Get_I_L2 return Float
+         with Annotate => (GNATprove, Terminating);     --  Get the current through L2
       function  Get_I_Load return Float;                --  Get the current through Load
-      function  Get_U_C1 return Float;                  --  Get the voltage over C1
-      function  Get_U_C2 return Float;                  --  Get the voltage over C2
+      function  Get_U_C1 return Float
+         with Annotate => (GNATprove, Terminating);     --  Get the voltage over C1
+      function  Get_U_C2 return Float
+         with Annotate => (GNATprove, Terminating);     --  Get the voltage over C2
       function  Get_U_V1 return Float;                  --  Get the voltage of V1
       function  Get_Sim_All return Sim_Output_T;        --  Get all output values
       function  Get_D_M1 return Float;                  --  Get the dutycycle for M1
@@ -47,7 +56,7 @@ package PSU_Simulation is
       D_M2_5    : Float := 0.0;      --  Buffer
       D_M1      : Float := 0.0;      --  Buffer
       Conf      : Sim_Config_T;      --  Buffer
-      Loads     : loadArray_T;       --  Buffer
+      Loads     : loadArray_T := (others => (others => 0.0));       --  Buffer
       Conf_OK   : Boolean := False;  --  Status of initilization (true when configuration is set)
       Load_OK   : Boolean := False;  --  Status of initilization (true when load is set)
    end Simulation_I_T;
@@ -58,6 +67,7 @@ private
 
    task type Simulation_Task_T is
    end Simulation_Task_T;
+   pragma Annotate (GNATprove, False_Positive, "task might terminate", "cheked by Simon");
 
    function Get_Load_Actual (ST : Ada.Real_Time.Time; LO : loadArray_T) return Float;
 

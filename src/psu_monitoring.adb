@@ -1,8 +1,6 @@
 pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
-with Ada.Text_IO; use Ada.Text_IO;
-
 with PSU_Control; use PSU_Control;
 with PSU_Simulation; use PSU_Simulation;
 
@@ -151,7 +149,7 @@ package body PSU_Monitoring is
             end if;
 
          when settling =>
-            if is_within_expanded_limits (monitor, signal_value) = False then
+            if not is_within_expanded_limits (monitor, signal_value) then
                monitor.next_state := shutdown;
                monitor.timer := Milliseconds (0);
             elsif monitor.timer >= monitor.config.settling_time then
@@ -162,7 +160,7 @@ package body PSU_Monitoring is
             end if;
 
          when active =>
-            if is_within_limits (monitor, signal_value) = False then
+            if not is_within_limits (monitor, signal_value) then
                monitor.next_state := alert;
                monitor.timer := Milliseconds (0);
             else
@@ -216,7 +214,6 @@ package body PSU_Monitoring is
    begin
 
       loop
-         Put_Line ("Run task monitoring");
          --  Fetch monitor configuration
          monitor_pfc_voltage.config := monitoring_interface.get_monitor_pfc_voltage_config;
          monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
