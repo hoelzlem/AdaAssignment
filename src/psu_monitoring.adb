@@ -59,7 +59,7 @@ package body PSU_Monitoring is
 
    end Monitoring_Interface_T;
 
-   function is_within_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
+   function is_within_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean is
       within_limits : Boolean := False;
    begin
       case monitor.config.monitoring_mode is
@@ -78,11 +78,11 @@ package body PSU_Monitoring is
 
    end is_within_limits;
 
-   function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float) return Boolean is
+   function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean is
       within_expanded_limits : Boolean := False;
 
-      expanded_lower_threshold : Float_Signed1000;
-      expanded_upper_threshold : Float_Signed1000;
+      expanded_lower_threshold : Float_Signed10000;
+      expanded_upper_threshold : Float_Signed10000;
    begin
       case monitor.config.monitoring_mode is
          when mean_based =>
@@ -116,7 +116,7 @@ package body PSU_Monitoring is
 
    end is_within_expanded_limits;
 
-   procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float) is
+   procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float_Signed1000) is
    begin
       declare
          all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
@@ -194,10 +194,10 @@ package body PSU_Monitoring is
    end monitor_signal;
 
    procedure do_monitoring is
-      U_C1 : constant Float := Sim.Get_U_C1;
-      I_L1 : constant Float := Sim.Get_I_L1;
-      U_C2 : constant Float := Sim.Get_U_C2;
-      I_L2 : constant Float := Sim.Get_I_L2;
+      U_C1 : constant Float_Signed1000 := Sim.Get_U_C1;
+      I_L1 : constant Float_Signed1000 := Sim.Get_I_L1;
+      U_C2 : constant Float_Signed1000 := Sim.Get_U_C2;
+      I_L2 : constant Float_Signed1000 := Sim.Get_I_L2;
    begin
       --  Monitor PFC intermediate voltage
       monitor_signal (monitor_pfc_voltage, U_C1);
