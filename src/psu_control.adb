@@ -92,20 +92,43 @@ package body PSU_Control is
       return C.Y + C.Sat;
    end calculate_U;
 
-   procedure reset (C : in out PID_Controller_T) is
+   function Do_Filtering (F : in out IIR_Filter_T; I : in Float) return Float is
+      z0     : Float;
+      result : Float;
+   begin
+      z0 := F.gi * I - F.z1 * F.d1 - F.z2 * F.d2;
+      result := z0 * F.n0 + F.z1 * F.n1 + F.z2 * F.n2;
+      F.z2 := F.z1;
+      F.z1 := z0;
+      return result;
+   end Do_Filtering;
+
+   procedure Set_Config (F : in out IIR_Filter_T; gi, d1, d2, n0, n1, n2 : in Float) is
+   begin
+      F.gi := gi;
+      F.d1 := d1;
+      F.d2 := d2;
+      F.n0 := n0;
+      F.n1 := n1;
+      F.n2 := n2;
+   end Set_Config;
+
+   procedure Reset (C : in out PID_Controller_T) is
    begin
       C.E   := 0.0;
       C.E1  := 0.0;
       C.I   := 0.0;
       C.Sat := 0.0;
-   end reset;
+   end Reset;
 
    task body Control_Task_T is
-      Conf           : PID_Config_A_T;
-      Next_Time      : Time := Clock;
-      D_M1, D_M2_5   : Float := 0.0;
-      I_L1, I_L2     : Float := 0.0;
-      Controllers    : PID_Controller_A_T;
+      Conf             : PID_Config_A_T;
+      Next_Time        : Time := Clock;
+      D_M1, D_M2_5     : Float := 0.0;
+      I_L1, I_L2       : Float := 0.0;
+      U_V1_p           : Float := 1.0;
+      Controllers      : PID_Controller_A_T;
+      Filter           : IIR_Filter_T;
    begin
       Next_Time := Clock;
       while (not Sim.Is_Ready or not Ctrl.Is_Ready)
@@ -118,16 +141,21 @@ package body PSU_Control is
       for id in PID_Controller_A_T'Range loop
          Controllers (id).Conf := Conf (id);
       end loop;
-
+      Set_Config (F  => Filter,
+                  gi => 0.000024908586894469566207482164044151318,
+                  d1 => -1.985834014316131712618584970186930149794,
+                  d2 =>  0.9859336486637094720819618487439583987,
+                  n0 => 1.0,
+                  n1 => 2.0,
+                  n2 => 1.0);
       loop
          Ada.Text_IO.Put_Line ("Control task active");
-         --  Run the controllers
-
-         --  Set dutycycle for Simulation
+         U_V1_p := Do_Filtering (Filter, abs Sim.Get_U_V1);
          if (Ctrl.Get_Safety_State) then
             I_L1 := calculate_U (C => Controllers (PID_U_C1),
                                  W => Ctrl.Get_W_U_C1,
                                  Y => Sim.Get_U_C1);
+            I_L1 := I_L1 * Sim.Get_U_V1 / U_V1_p;
             I_L2 := calculate_U (C => Controllers (PID_U_C2),
                                  W => Ctrl.Get_W_U_C2,
                                  Y => Sim.Get_U_C2);
@@ -140,14 +168,13 @@ package body PSU_Control is
             Sim.Set_D_M1 (D_M1);
             Sim.Set_D_M2_5 (D_M2_5);
          else
-            reset (C => Controllers (PID_U_C1));
-            reset (C => Controllers (PID_U_C2));
-            reset (C => Controllers (PID_I_L1));
-            reset (C => Controllers (PID_I_L2));
+            Reset (C => Controllers (PID_U_C1));
+            Reset (C => Controllers (PID_U_C2));
+            Reset (C => Controllers (PID_I_L1));
+            Reset (C => Controllers (PID_I_L2));
             Sim.Set_D_M1 (0.0);
             Sim.Set_D_M2_5 (0.0);
          end if;
-
          Next_Time := Next_Time +
             Milliseconds (Integer (Conf (PID_U_C1).T * 1.0e6));
          delay until Next_Time;

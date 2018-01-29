@@ -51,11 +51,24 @@ package PSU_Control is
          Y    : Float := 0.0;
          Sat  : Float := 0.0;
       end record;
-   function calculate_U
-      (C : in out PID_Controller_T; W : in Float; Y : in Float)
-       return Float;
+   function calculate_U (C : in out PID_Controller_T; W : in Float; Y : in Float) return Float;
 
-   procedure reset (C : in out PID_Controller_T);
+   --  Direct-Form II based IIR-Filter
+   type IIR_Filter_T is tagged
+      record
+         z1   : Float := 0.0;
+         z2   : Float := 0.0;
+         gi   : Float := 0.0;
+         d1   : Float := 0.0;
+         d2   : Float := 0.0;
+         n0   : Float := 0.0;
+         n1   : Float := 0.0;
+         n2   : Float := 0.0;
+      end record;
+   function Do_Filtering (F : in out IIR_Filter_T; I : in Float) return Float;
+   procedure Set_Config (F : in out IIR_Filter_T; gi, d1, d2, n0, n1, n2 : in Float);
+
+   procedure Reset (C : in out PID_Controller_T);
 
    type PID_Controller_A_T is array (PID_Target_T)  of PID_Controller_T;
 

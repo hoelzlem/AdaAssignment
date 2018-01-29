@@ -31,8 +31,8 @@ procedure Main is
    out_current_config  : Monitor_Config_T;
 
 begin
-   Put_Line ("Do you want to load default config files? [Y/N]");
-   if (Get_Line (Standard_Input) = "Y") then
+   Put_Line ("Do you want to load default config files? [y/n]");
+   if (Get_Line (Standard_Input) = "y") then
       Open_File (File => simConfigFT,
                  Name => "good_config.txt");
       Open_File (File => monitorConfigFT,
