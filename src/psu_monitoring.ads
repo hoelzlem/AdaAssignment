@@ -12,7 +12,6 @@ package PSU_Monitoring is
    type Monitoring_Mode_T is (mean_based, threshold_based);
    type Monitor_State_T is (reset, startup, settling, active, alert, shutdown);
 
-   subtype Float_Natural1000 is Float range 0.0 .. 1_000.0;
    subtype Float_Signed1000 is Float range -1_000.0 .. 1_000.0;
    subtype Float_Signed10000 is Float range -10_000.0 .. 10_000.0;
 
@@ -20,11 +19,11 @@ package PSU_Monitoring is
       monitoring_mode : Monitoring_Mode_T := mean_based;
 
       mean : Float_Signed1000 := 0.0;
-      maximum_deviation : Float_Natural1000 := 0.0;
-      lower_threshold : Float_Signed1000 := 0.0;
-      upper_threshold : Float_Signed1000 := 0.0;
+      maximum_deviation : Float range Float'Small .. 1_000.0 := 100.0e-3;
+      lower_threshold : Float_Signed1000 := -100.0e-3;
+      upper_threshold : Float_Signed1000 := 100.0e-3;
 
-      settling_tolerance_expansion : Float range 1.0 .. 2.0 := 1.2;
+      settling_tolerance_expansion : Float range (1.0 + Float'Small) .. 2.0 := 1.2;
 
       startup_time : Time_Span := Milliseconds (5);
       settling_time : Time_Span := Milliseconds (2);
@@ -91,12 +90,12 @@ private
       --Post => monitor.next_state = reset and then monitor.timer < Milliseconds (200) and then monitor.timer /= monitor.timer'Old;
 
    function is_within_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean
-      with Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0) and then (if monitor.config.monitoring_mode = threshold_based then (monitor.config.lower_threshold < monitor.config.upper_threshold));
+      with Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold);
          
       --Contract_Cases => (monitor.config.monitoring_mode = mean_based => (if is_within_limits'Result then (abs (monitor.config.mean - signal_value) <= monitor.config.maximum_deviation)),                         monitor.config.monitoring_mode = threshold_based => (if is_within_limits'Result then (signal_value >= monitor.config.lower_threshold) and then (signal_value <= monitor.config.upper_threshold)));
 
    function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean
-      with Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0) and then (if monitor.config.monitoring_mode = threshold_based then (monitor.config.lower_threshold < monitor.config.upper_threshold)) and then monitor.config.settling_tolerance_expansion > 1.0;
+      with Pre => (if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold) and then monitor.config.settling_tolerance_expansion > 1.0;
 
    --  @TODO add case for monitoring_mode = threshold_based
    --  I didn't add that yet because it is really complicated and terrible to read. I put an assertion into the function until then.

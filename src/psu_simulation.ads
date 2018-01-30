@@ -6,6 +6,8 @@ pragma Partition_Elaboration_Policy (Sequential);
 
 with Ada.Real_Time;
 package PSU_Simulation is
+    
+   subtype Float_Signed1000 is Float range -1.0e3 .. 1.0e3;
 
    type Sim_Config_T is record
       L1     : Float := 1.0e-3;  --  Inductance of L1
@@ -29,18 +31,27 @@ package PSU_Simulation is
    maxLoadValues : constant Integer := 20; -- Constant max number of load values
    type loadArray_T is array (Integer range 1 .. maxLoadValues, Integer range 1 .. 2) of Float;
 
+
    protected type Simulation_I_T is
       function  Is_Ready return Boolean;                --  Synchronize threads at startup (returns true when everything is configured)
       function  Get_Config return Sim_Config_T;         --  Get the hardware configuration of this simulation
+      --  See https://goo.gl/nJKP8B
       function  Get_I_L1 return Float
-         with Annotate => (GNATprove, Terminating);     --  Get the current through L1
+         with Annotate => (GNATprove, Terminating),
+         Post => Get_I_L1'Result in Float_Signed1000;     --  Get the current through L1
+      --  See https://goo.gl/nJKP8B
       function  Get_I_L2 return Float
-         with Annotate => (GNATprove, Terminating);     --  Get the current through L2
+         with Annotate => (GNATprove, Terminating),
+         Post => Get_I_L2'Result in Float_Signed1000;     --  Get the current through L2
       function  Get_I_Load return Float;                --  Get the current through Load
+      --  See https://goo.gl/nJKP8B
       function  Get_U_C1 return Float
-         with Annotate => (GNATprove, Terminating);     --  Get the voltage over C1
+         with Annotate => (GNATprove, Terminating),
+         Post => Get_U_C1'Result in Float_Signed1000;     --  Get the voltage over C1
+      --  See https://goo.gl/nJKP8B
       function  Get_U_C2 return Float
-         with Annotate => (GNATprove, Terminating);     --  Get the voltage over C2
+         with Annotate => (GNATprove, Terminating),
+         Post => Get_U_C2'Result in Float_Signed1000;     --  Get the voltage over C2
       function  Get_U_V1 return Float;                  --  Get the voltage of V1
       function  Get_Sim_All return Sim_Output_T;        --  Get all output values
       function  Get_D_M1 return Float;                  --  Get the dutycycle for M1

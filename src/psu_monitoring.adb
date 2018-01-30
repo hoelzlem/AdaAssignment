@@ -91,6 +91,9 @@ package body PSU_Monitoring is
             end if;
 
          when threshold_based =>
+            --  @TODO assertion is proved => precondition works but why does the next assertion fail to be proved?
+            pragma Assert (monitor.config.lower_threshold < monitor.config.upper_threshold);
+
             --  Calculate expanded thresholds
             if monitor.config.lower_threshold >= 0.0 then
                expanded_lower_threshold := monitor.config.lower_threshold / monitor.config.settling_tolerance_expansion;
@@ -104,6 +107,7 @@ package body PSU_Monitoring is
                expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;
             end if;
 
+            --  @TODO why does this assertion fail?
             pragma Assert (expanded_lower_threshold < expanded_upper_threshold);
 
             --  Check limits with expanded thresholds
@@ -118,10 +122,12 @@ package body PSU_Monitoring is
 
    procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float_Signed1000) is
    begin
+      --  Check if monitors are configured and ready to use. This procedure can't be executed properly otherwise.
       declare
          all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
       begin
          pragma Assert (all_config_is_set);
+         pragma Annotate (GNATprove, False_Positive, "assertion might fail", "The assertion can't fail because this procedure is exclusively called from do monitoring and only if is_all_config_set returns True");
       end;
 
       monitor.current_state := monitor.next_state;
@@ -194,11 +200,15 @@ package body PSU_Monitoring is
    end monitor_signal;
 
    procedure do_monitoring is
-      U_C1 : constant Float_Signed1000 := Sim.Get_U_C1;
-      I_L1 : constant Float_Signed1000 := Sim.Get_I_L1;
-      U_C2 : constant Float_Signed1000 := Sim.Get_U_C2;
-      I_L2 : constant Float_Signed1000 := Sim.Get_I_L2;
+      U_C1 : constant Float := Sim.Get_U_C1;
+      I_L1 : constant Float := Sim.Get_I_L1;
+      U_C2 : constant Float := Sim.Get_U_C2;
+      I_L2 : constant Float := Sim.Get_I_L2;
    begin
+      pragma Assert (U_C1 in Float_Signed1000);
+      pragma Assert (I_L1 in Float_Signed1000);
+      pragma Assert (U_C2 in Float_Signed1000);
+      pragma Assert (I_L2 in Float_Signed1000);
       --  Monitor PFC intermediate voltage
       monitor_signal (monitor_pfc_voltage, U_C1);
       --  Monitor PFC inductor current
