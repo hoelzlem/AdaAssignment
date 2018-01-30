@@ -76,6 +76,7 @@ begin
    end if;
 
    Close_File (simConfigFT);
+   Close_File (monitorConfigFT);
    Close_File (loadDefFT);
    Close_File (outputFT);
 

@@ -1,5 +1,6 @@
 pragma Profile (Ravenscar);
 with PSU_Simulation; use PSU_Simulation;
+with global_constants; use global_constants;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
 package body PSU_Control is
@@ -175,8 +176,7 @@ package body PSU_Control is
             Sim.Set_D_M1 (0.0);
             Sim.Set_D_M2_5 (0.0);
          end if;
-         Next_Time := Next_Time +
-            Milliseconds (Integer (Conf (PID_U_C1).T * 1.0e6));
+         Next_Time := Next_Time + Milliseconds (Integer (Conf (PID_I_L2).T * RT_MUL_S2MS));
          delay until Next_Time;
       end loop;
    end Control_Task_T;
