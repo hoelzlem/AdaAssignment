@@ -84,6 +84,7 @@ package body PSU_Monitoring is
       expanded_lower_threshold : Float_Signed10000;
       expanded_upper_threshold : Float_Signed10000;
    begin
+
       case monitor.config.monitoring_mode is
          when mean_based =>
             if abs (monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion) then
@@ -91,6 +92,8 @@ package body PSU_Monitoring is
             end if;
 
          when threshold_based =>
+            --pragma Assume (monitor.config.upper_threshold = 20.0);
+            pragma Assume (monitor.config.lower_threshold = 10.0);
             --  @TODO assertion is proved => precondition works but why does the next assertion fail to be proved?
             pragma Assert (monitor.config.lower_threshold < monitor.config.upper_threshold);
 
