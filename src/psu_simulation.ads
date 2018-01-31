@@ -6,7 +6,7 @@ pragma Partition_Elaboration_Policy (Sequential);
 
 with Ada.Real_Time;
 package PSU_Simulation is
-    
+
    subtype Float_Signed1000 is Float range -1.0e3 .. 1.0e3;
 
    type Sim_Config_T is record
@@ -28,7 +28,7 @@ package PSU_Simulation is
       U_V1   : Float := 0.0;     --  Voltage of V1
    end record;
 
-   maxLoadValues : constant Integer := 20; -- Constant max number of load values
+   maxLoadValues : constant Integer := 10; -- Constant max number of load values
    type loadArray_T is array (Integer range 1 .. maxLoadValues, Integer range 1 .. 2) of Float;
 
 
@@ -57,19 +57,23 @@ package PSU_Simulation is
       function  Get_D_M1 return Float;                  --  Get the dutycycle for M1
       function  Get_D_M2_5 return Float;                --  Get the dutycycle for M2 to M5
       function  Get_Load return loadArray_T;            --  Get the load configuration
+      function  Get_Start_Time return Ada.Real_Time.Time;
       procedure Set_Config (Val : in Sim_Config_T);     --  Set the hardware configuration of this simulation
       procedure Set_D_M1 (Val : in Float);              --  Set the dutycycle for M1
       procedure Set_D_M2_5 (Val : in Float);            --  Set the dutycycle for M2 to M5
       procedure Set_Sim_Out (Val : in Sim_Output_T);    --  Set all output values
       procedure Set_Load (Val : in loadArray_T);        --  Set the load configuration
+      procedure Set_Start_Time (Val : Ada.Real_Time.Time);
+
    private
-      Sim_Out   : Sim_Output_T;      --  Buffer
-      D_M2_5    : Float := 0.0;      --  Buffer
-      D_M1      : Float := 0.0;      --  Buffer
-      Conf      : Sim_Config_T;      --  Buffer
+      Sim_Out   : Sim_Output_T;                                     --  Buffer
+      D_M2_5    : Float := 0.0;                                     --  Buffer
+      D_M1      : Float := 0.0;                                     --  Buffer
+      Conf      : Sim_Config_T;                                     --  Buffer
       Loads     : loadArray_T := (others => (others => 0.0));       --  Buffer
-      Conf_OK   : Boolean := False;  --  Status of initilization (true when configuration is set)
-      Load_OK   : Boolean := False;  --  Status of initilization (true when load is set)
+      Conf_OK   : Boolean := False;                                 --  Status of initilization (true when configuration is set)
+      Load_OK   : Boolean := False;                                 --  Status of initilization (true when load is set)
+      T_Start   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;   --  Buffer
    end Simulation_I_T;
 
    Sim : Simulation_I_T;  --  Instantiation of Interface

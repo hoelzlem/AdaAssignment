@@ -10,8 +10,9 @@ package global_constants is
    --  vt100_CYAN         : String :=   ASCII.ESC & "[36m";
    --  vt100_WHITE        : String :=  ASCII.ESC & "[37m";
 
-   --  Factor used to slow down calculation
-   RT_MUL             : Float := 1.0e2;
+   --  Factor used to slow down tasking
+   --  The simulation is not able to run in in real time (would be a few ns)
+   RT_MUL             : Float := 1.0e4;
    RT_MUL_S2MS        : Float := 1.0e3 * RT_MUL;
    RT_MUL_S2US        : Float := 1.0e3 * RT_MUL_S2MS;
 

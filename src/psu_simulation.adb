@@ -69,6 +69,11 @@ package body PSU_Simulation is
          return Loads;
       end Get_Load;
 
+      function  Get_Start_Time return Ada.Real_Time.Time is
+      begin
+         return T_Start;
+      end Get_Start_Time;
+
       procedure Set_Config (Val : in Sim_Config_T) is
       begin
          Conf    := Val;
@@ -96,33 +101,38 @@ package body PSU_Simulation is
          Load_OK := True;
       end Set_Load;
 
+      procedure Set_Start_Time (Val : Ada.Real_Time.Time) is
+      begin
+         T_Start := Val;
+      end Set_Start_Time;
+
    end Simulation_I_T;
 
    function Get_Load_Actual (ST : Time; LO : loadArray_T) return Float is
-      Run_Time : Time_Span := Time_Span_First;
+      Run_Time : Time_Span;
    begin
       Run_Time := Clock - ST;
       for i in LO'Range (1) loop
          --  Return previous value if timestamp is not reached jet
-         if (Microseconds (Integer (RT_MUL_S2US * LO (i, 1))) > Run_Time) then
+         if ((RT_MUL_S2MS * LO (i, 1)) > Float (To_Duration (Run_Time))) then
             --  Return Inf if Start value not at time 0
             if (i - 1 in LO'Range (1)) then
-               return LO (2, i - 1);
+               return LO (i - 1, 2);
             else
-               return Float'Last;
+               return (1.0e12);
             end if;
          end if;
       end loop;
       --  Return Inf if no further load is specified
-      return Float'Last;
+      return (1.0e12);
    end Get_Load_Actual;
 
    task body Simulation_Task_T is
       Angle      : Float := 0.0;
       Load       : Float := 100.0;
       Load_A     : loadArray_T;
-      Start_Time : Time := Time_First;
-      Next_Time  : Time := Time_First;
+      Start_Time : Time;
+      Next_Time  : Time;
       Conf       : Sim_Config_T;
       Act, Prev  : Sim_Output_T;
    begin
@@ -147,7 +157,7 @@ package body PSU_Simulation is
          Act.U_C2   := (Prev.I_L2 - Prev.I_Load) * Conf.T / Conf.C2;
          Act.U_C1   := (Prev.I_L1 - Sim.Get_D_M2_5 * Prev.I_L2) * Conf.T / Conf.C1;
          Act.I_Load := Prev.U_C2 / Load;
-         --  Check for DC voltage and calculate mains voltage
+         --  Calculate mains voltage (Check if DC)
          if (Conf.f_V1 > 0.0001) then
             Angle    := Float'Remainder ((Angle + Conf.T * Conf.f_V1 * 2.0 * Ada.Numerics.Pi), (2.0 * Ada.Numerics.Pi));
             Act.U_V1 := Conf.Up_V1 * Ada.Numerics.Elementary_Functions.Sin (Angle);
