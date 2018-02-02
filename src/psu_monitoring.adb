@@ -1,8 +1,8 @@
 pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
-with PSU_Control; use PSU_Control;
-with PSU_Simulation; use PSU_Simulation;
+with global_constants;
+with Ada.Text_IO; use Ada.Text_IO;
 
 package body PSU_Monitoring is
 
@@ -10,8 +10,19 @@ package body PSU_Monitoring is
 
       function is_all_config_set return Boolean is
       begin
-         return monitor_pfc_voltage_config_set and monitor_pfc_current_config_set and monitor_output_voltage_config_set and monitor_output_current_config_set;
+         return supervisor_config_set and monitor_pfc_voltage_config_set and monitor_pfc_current_config_set and monitor_output_voltage_config_set and monitor_output_current_config_set;
       end is_all_config_set;
+
+      procedure set_supervisor_config (new_supervisor_config : in Supervisor_Config_T) is
+      begin
+         supervisor_config := new_supervisor_config;
+         supervisor_config_set := True;
+      end set_supervisor_config;
+
+      function get_supervisor_config return Supervisor_Config_T is
+      begin
+         return supervisor_config;
+      end get_supervisor_config;
 
       procedure set_monitor_pfc_voltage_config (new_monitor_config : in Monitor_Config_T) is
       begin
@@ -93,7 +104,7 @@ package body PSU_Monitoring is
 
          when threshold_based =>
             --pragma Assume (monitor.config.upper_threshold = 20.0);
-            pragma Assume (monitor.config.lower_threshold = 10.0);
+            --pragma Assume (monitor.config.lower_threshold = 10.0);
             --  @TODO assertion is proved => precondition works but why does the next assertion fail to be proved?
             pragma Assert (monitor.config.lower_threshold < monitor.config.upper_threshold);
 
@@ -125,27 +136,15 @@ package body PSU_Monitoring is
 
    procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float_Signed1000) is
    begin
-      --  Check if monitors are configured and ready to use. This procedure can't be executed properly otherwise.
-      declare
-         all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
-      begin
-         pragma Assert (all_config_is_set);
-         pragma Annotate (GNATprove, False_Positive, "assertion might fail", "The assertion can't fail because this procedure is exclusively called from do monitoring and only if is_all_config_set returns True");
-      end;
-
+      --  Update monitor state
       monitor.current_state := monitor.next_state;
-
+      --  Perform FSM actions and determine next state
       case monitor.current_state is
          when reset =>
-            --  Deactivate controllers
-            Ctrl.Set_Safety_State (False);
-
             monitor.next_state := startup;
             monitor.timer := Milliseconds (0);
-         when startup =>
-            --  Activate controllers
-            Ctrl.Set_Safety_State (True);
 
+         when startup =>
             if is_within_limits (monitor, signal_value) then
                monitor.next_state := settling;
                monitor.timer := Milliseconds (0);
@@ -189,16 +188,7 @@ package body PSU_Monitoring is
             end if;
 
          when shutdown =>
-            --  Deactivate controllers
-            Ctrl.Set_Safety_State (False);
-
-            if monitor.timer >= monitor.config.retry_time then
-               monitor.next_state := startup;
-               monitor.timer := Milliseconds (0);
-            else
-               monitor.next_state := shutdown;
-               monitor.timer := monitor.timer + TASK_PERIOD;
-            end if;
+            monitor.next_state := shutdown;
       end case;
    end monitor_signal;
 
@@ -222,11 +212,75 @@ package body PSU_Monitoring is
       monitor_signal (monitor_output_current, I_L2);
    end do_monitoring;
 
+   procedure do_supervision is
+   begin
+      --  Check if monitors and supervisor are configured and ready to use. This procedure can't be executed properly otherwise.
+      declare
+         all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
+      begin
+         pragma Assert (all_config_is_set);
+         pragma Annotate (GNATprove, False_Positive, "assertion might fail", "The assertion can't fail because this procedure is exclusively called from do monitoring and only if is_all_config_set returns True");
+      end;
+
+      --  Update supervisor state
+      supervisor.current_state := supervisor.next_state;
+      Put_Line (Supervisor_State_T'Image (supervisor.current_state));
+      --  Perform FSM actions and determine next state
+      case supervisor.current_state is
+         when reset =>
+            --  Deactivate power stages
+            Ctrl.Set_Safety_State (False);
+            pragma Annotate (GNATprove, False_Positive, "input value of ""Ctrl"" will be used", "Ctrl is only used as an output here");
+
+            supervisor.next_state := active;
+
+         when active =>
+            --  Activate power stages
+            Ctrl.Set_Safety_State (True);
+            pragma Annotate (GNATprove, False_Positive, "input value of ""Ctrl"" will be used", "Ctrl is only used as an output here");
+            --  Perform monitoring
+            do_monitoring;
+
+            if monitor_pfc_voltage.current_state = shutdown or monitor_pfc_current.current_state = shutdown or monitor_output_voltage.current_state = shutdown or monitor_output_current.current_state = shutdown then
+               --  At least one state variable violated its limits => shutdown required
+               supervisor.next_state := shutdown;
+               supervisor.timer := Milliseconds (0);
+            else
+               supervisor.next_state := active;
+            end if;
+
+         when shutdown =>
+            --  Deactivate power stages
+            Ctrl.Set_Safety_State (False);
+            pragma Annotate (GNATprove, False_Positive, "input value of ""Ctrl"" will be used", "Ctrl is only used as an output here");
+            --  Reset monitors
+            monitor_pfc_voltage.current_state := reset;
+            monitor_pfc_voltage.next_state := reset;
+            monitor_pfc_current.current_state := reset;
+            monitor_pfc_current.next_state := reset;
+            monitor_output_voltage.current_state := reset;
+            monitor_output_voltage.next_state := reset;
+            monitor_output_current.current_state := reset;
+            monitor_output_current.next_state := reset;
+
+            if supervisor.timer >= supervisor.config.retry_time then
+               --  The retry timer has elapsed and the supervisor initialises a retry
+               supervisor.next_state := active;
+               supervisor.timer := Milliseconds (0);
+            else
+               supervisor.next_state := shutdown;
+               supervisor.timer := supervisor.timer + TASK_PERIOD;
+            end if;
+      end case;
+   end do_supervision;
+
    task body monitoring_task is
+      STRECHED_TASK_PERIOD : constant Time_Span := TASK_PERIOD * Integer (Float'Rounding (global_constants.RT_MUL));
       next_time : Time := Clock;
    begin
-
       loop
+         --  Fetch supervisor configuration
+         supervisor.config := monitoring_interface.get_supervisor_config;
          --  Fetch monitor configuration
          monitor_pfc_voltage.config := monitoring_interface.get_monitor_pfc_voltage_config;
          monitor_pfc_current.config := monitoring_interface.get_monitor_pfc_current_config;
@@ -238,11 +292,11 @@ package body PSU_Monitoring is
             all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
          begin
             if all_config_is_set then
-               do_monitoring;
+               do_supervision;
             end if;
          end;
 
-         next_time := next_time + TASK_PERIOD;
+         next_time := next_time + TASK_PERIOD * 10;
          delay until next_time;
       end loop;
    end monitoring_task;
