@@ -25,6 +25,7 @@ procedure Main is
    loadValid           : Boolean;
    loadArray           : loadArray_T;
    numLoadValues       : Integer;
+   supervisor_config   : Supervisor_Config_T;
    pfc_voltage_config  : Monitor_Config_T;
    pfc_current_config  : Monitor_Config_T;
    out_voltage_config  : Monitor_Config_T;
@@ -64,6 +65,7 @@ begin
 
    parseMonitorConfig (monitorConfigFT, pfc_voltage_config, pfc_current_config, out_voltage_config, out_current_config, monitorConfigValid);
    if (monitorConfigValid) then
+      monitoring_interface.set_supervisor_config (supervisor_config);
       monitoring_interface.set_monitor_pfc_voltage_config (pfc_voltage_config);
       monitoring_interface.set_monitor_pfc_current_config (pfc_current_config);
       monitoring_interface.set_monitor_output_voltage_config (out_voltage_config);
