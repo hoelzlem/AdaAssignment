@@ -2,7 +2,6 @@ pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
 with global_constants;
-with Ada.Text_IO; use Ada.Text_IO;
 
 package body PSU_Monitoring is
 
@@ -80,8 +79,8 @@ package body PSU_Monitoring is
             end if;
 
          when threshold_based =>
-            if signal_value >= monitor.config.lower_threshold and signal_value <= monitor.config.upper_threshold then
-               within_limits := True;
+            if signal_value in monitor.config.lower_threshold .. monitor.config.upper_threshold then
+                  within_limits := True;
             end if;
       end case;
 
@@ -89,13 +88,35 @@ package body PSU_Monitoring is
 
    end is_within_limits;
 
+   function expand_threshold (threshold : in Float_Signed1000; expansion_factor : Expansion_Factor_T; T : Threshold_T) return Float_Signed10000 is
+      expanded_threshold : Float_Signed10000;
+   begin
+      case T is
+         when lower =>
+            if threshold >= 0.0 then
+               expanded_threshold := threshold / expansion_factor;
+            else
+               expanded_threshold := threshold * expansion_factor;
+            end if;
+
+         when upper =>
+            if threshold >= 0.0 then
+               expanded_threshold := threshold * expansion_factor;
+            else
+               expanded_threshold := threshold / expansion_factor;
+            end if;
+      end case;
+
+      return expanded_threshold;
+
+   end expand_threshold;
+
    function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean is
       within_expanded_limits : Boolean := False;
 
       expanded_lower_threshold : Float_Signed10000;
       expanded_upper_threshold : Float_Signed10000;
    begin
-
       case monitor.config.monitoring_mode is
          when mean_based =>
             if abs (monitor.config.mean - signal_value) <= (monitor.config.maximum_deviation * monitor.config.settling_tolerance_expansion) then
@@ -103,25 +124,10 @@ package body PSU_Monitoring is
             end if;
 
          when threshold_based =>
-            --pragma Assume (monitor.config.upper_threshold = 20.0);
-            --pragma Assume (monitor.config.lower_threshold = 10.0);
-            --  @TODO assertion is proved => precondition works but why does the next assertion fail to be proved?
-            pragma Assert (monitor.config.lower_threshold < monitor.config.upper_threshold);
+            expanded_lower_threshold := expand_threshold (monitor.config.lower_threshold, monitor.config.settling_tolerance_expansion, lower);
+            expanded_upper_threshold := expand_threshold (monitor.config.upper_threshold, monitor.config.settling_tolerance_expansion, upper);
 
-            --  Calculate expanded thresholds
-            if monitor.config.lower_threshold >= 0.0 then
-               expanded_lower_threshold := monitor.config.lower_threshold / monitor.config.settling_tolerance_expansion;
-            else
-               expanded_lower_threshold := monitor.config.lower_threshold * monitor.config.settling_tolerance_expansion;
-            end if;
-
-            if monitor.config.upper_threshold >= 0.0 then
-               expanded_upper_threshold := monitor.config.upper_threshold * monitor.config.settling_tolerance_expansion;
-            else
-               expanded_upper_threshold := monitor.config.upper_threshold / monitor.config.settling_tolerance_expansion;
-            end if;
-
-            --  @TODO why does this assertion fail?
+            --  @TODO this assertion is troublesome and couldn't be proved without using annotations yet. The lemma library might help but time was short in the end.
             pragma Assert (expanded_lower_threshold < expanded_upper_threshold);
 
             --  Check limits with expanded thresholds
@@ -219,12 +225,11 @@ package body PSU_Monitoring is
          all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
       begin
          pragma Assert (all_config_is_set);
-         pragma Annotate (GNATprove, False_Positive, "assertion might fail", "The assertion can't fail because this procedure is exclusively called from do monitoring and only if is_all_config_set returns True");
+         pragma Annotate (GNATprove, False_Positive, "assertion might fail", "The assertion can't fail because this procedure is exclusively called from monitoring_task and only if is_all_config_set returns True");
       end;
 
       --  Update supervisor state
       supervisor.current_state := supervisor.next_state;
-      Put_Line (Supervisor_State_T'Image (supervisor.current_state));
       --  Perform FSM actions and determine next state
       case supervisor.current_state is
          when reset =>
@@ -241,6 +246,7 @@ package body PSU_Monitoring is
             --  Perform monitoring
             do_monitoring;
 
+            --  Check if either of the monitors is in state shutdown
             if monitor_pfc_voltage.current_state = shutdown or monitor_pfc_current.current_state = shutdown or monitor_output_voltage.current_state = shutdown or monitor_output_current.current_state = shutdown then
                --  At least one state variable violated its limits => shutdown required
                supervisor.next_state := shutdown;
@@ -264,7 +270,6 @@ package body PSU_Monitoring is
             monitor_output_current.next_state := reset;
 
             if supervisor.timer >= supervisor.config.retry_time then
-               --  The retry timer has elapsed and the supervisor initialises a retry
                supervisor.next_state := active;
                supervisor.timer := Milliseconds (0);
             else
@@ -275,7 +280,7 @@ package body PSU_Monitoring is
    end do_supervision;
 
    task body monitoring_task is
-      STRECHED_TASK_PERIOD : constant Time_Span := TASK_PERIOD * Integer (Float'Rounding (global_constants.RT_MUL));
+      STRECHED_TASK_PERIOD : constant Time_Span := TASK_PERIOD * Integer (global_constants.RT_MUL);
       next_time : Time := Clock;
    begin
       loop
@@ -296,7 +301,7 @@ package body PSU_Monitoring is
             end if;
          end;
 
-         next_time := next_time + TASK_PERIOD * 10;
+         next_time := next_time + STRECHED_TASK_PERIOD;
          delay until next_time;
       end loop;
    end monitoring_task;
