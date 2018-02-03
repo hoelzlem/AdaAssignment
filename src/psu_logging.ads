@@ -38,7 +38,7 @@ private
    TASK_PERIOD : constant Time_Span := Milliseconds (100);
 
    task logging_task is
-      pragma Priority (System.Priority'Last);
+      pragma Priority (System.Priority'First);
    end logging_task;
 
    generic
