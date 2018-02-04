@@ -1,7 +1,10 @@
 pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
-with global_constants;
+with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Exceptions; use Ada.Exceptions;
+
+with global_constants; use global_constants;
 
 package body PSU_Monitoring is
 
@@ -303,6 +306,7 @@ package body PSU_Monitoring is
             all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
          begin
             if all_config_is_set then
+               Put_Line (vt100_RED & "Running monitoring task" & vt100_RESET);
                do_supervision;
             end if;
          end;
@@ -310,6 +314,8 @@ package body PSU_Monitoring is
          next_time := next_time + STRECHED_TASK_PERIOD;
          delay until next_time;
       end loop;
+   exception
+         when Error : others => Put_Line (vt100_RED & "An exception occured in monitoring " & Exception_Information (Error) & vt100_RESET);
    end monitoring_task;
 
 end PSU_Monitoring;

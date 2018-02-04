@@ -162,7 +162,6 @@ package body PSU_Control is
                   n1 => 2.0,
                   n2 => 1.0);
       loop
-         Ada.Text_IO.Put_Line (vt100_CYAN & "Running control task" & vt100_RESET);
          --  Filter the Voltage V1 to get rectified value and multiply with Crest factor
          U_V1_p := Do_Filtering (Filter, abs Sim.Get_U_V1) * 1.414;
          if (Ctrl.Get_Safety_State) then
@@ -195,7 +194,7 @@ package body PSU_Control is
             Sim.Set_D_M2_5 (0.0);
          end if;
          --  Print the values assigned to the dutycycles of M1 and M2 to M5
-         Ada.Text_IO.Put_Line ("Ctrl task -> D_M1: " & D_M1'Image & " D_M2_5: " & D_M2_5'Image);
+         Ada.Text_IO.Put_Line (vt100_CYAN & "Running control task " & vt100_RESET & "-> D_M1: " & D_M1'Image & " D_M2_5: " & D_M2_5'Image);
          --  Calculate next time the thread should run and delay until said time
          Next_Time := Next_Time + Period;
          delay until Next_Time;

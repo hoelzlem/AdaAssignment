@@ -164,11 +164,10 @@ package body PSU_Simulation is
       Start_Time := Clock;
       Sim.Set_Start_Time (Start_Time);
       loop
-         Ada.Text_IO.Put_Line (vt100_GREEN & "Running simulation task" & vt100_RESET);
          --  Get new new value for load and calculate the electrical terms
          Load := Get_Load_Actual (Start_Time, Load_A);
          Sim.Set_Load (Load);
-         Ada.Text_IO.Put ("Sim task -> Load: " & Load'Image);
+         Ada.Text_IO.Put (vt100_MAGENTA & "Running simulation task " & vt100_RESET & "-> Load: " & Load'Image);
          --  Calculate the electrical terms (see schematic of the circuit)
          Act.I_L1   := Prev.I_L1 + (Sim.Get_D_M1 * abs (Prev.U_V1) - (1.0 - Sim.Get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
          Act.I_L2   := Prev.I_L2 + (Sim.Get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;

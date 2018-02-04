@@ -2,7 +2,6 @@ pragma Profile (Ravenscar);
 
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO; use Ada.Text_IO;
-with global_constants; use global_constants;
 
 package PSU_Logging is
 
@@ -32,7 +31,7 @@ package PSU_Logging is
    logger_interface : Logger_Interface_T;
 
 private
-   TASK_PERIOD : constant Time_Span := Milliseconds (Integer (1.0 * RT_MUL));
+   TASK_PERIOD : constant Time_Span := Milliseconds (1);
 
    task logging_task;
 

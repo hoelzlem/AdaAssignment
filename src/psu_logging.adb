@@ -1,5 +1,7 @@
 pragma Profile (Ravenscar);
 
+with Ada.Exceptions; use Ada.Exceptions;
+
 with global_constants; use global_constants;
 with PSU_Simulation; use PSU_Simulation;
 
@@ -44,8 +46,12 @@ package body PSU_Logging is
    procedure csv_end_line_signal_name is new csv_end_line (Item_Type_t => logged_signal_names_t, Image => logged_signal_names_t'Image);
 
    task body logging_task is
+      STRETCHED_TASK_PERIOD : constant Time_Span := Integer (RT_MUL) * TASK_PERIOD;
+
       start_time : constant Time := Clock;
       next_time : Time := start_time;
+
+      internal_time : Time := start_time;
    begin
       while not logger_interface.is_all_config_set loop
          next_time := next_time + TASK_PERIOD;
@@ -56,11 +62,14 @@ package body PSU_Logging is
 
       loop
          Put_Line (vt100_YELLOW & "Running logging task" & vt100_RESET);
-         write_current_data (logger_interface.get_logfile, To_Duration (next_time - start_time));
+         write_current_data (logger_interface.get_logfile, To_Duration (internal_time - start_time));
 
-         next_time := next_time + TASK_PERIOD;
+         next_time := next_time + STRETCHED_TASK_PERIOD;
+         internal_time := internal_time + TASK_PERIOD;
          delay until next_time;
       end loop;
+   exception
+         when Error : others => Put_Line (vt100_RED & "An exception occured in logging " & Exception_Information (Error) & vt100_RESET);
    end logging_task;
 
    procedure write_header (File : in File_CHandle) is
