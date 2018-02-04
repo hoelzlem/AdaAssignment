@@ -35,22 +35,18 @@ package PSU_Simulation is
    protected type Simulation_I_T is
       function  Is_Ready return Boolean;                    --  Synchronize threads at startup (returns true when everything is configured)
       function  Get_Config return Sim_Config_T;             --  Get the hardware configuration of this simulation
-      --  See https://goo.gl/nJKP8B
       function  Get_I_L1 return Float                       --  Get the current through L1
-         with Annotate => (GNATprove, Terminating),
+         with Annotate => (GNATprove, Terminating),         --  See https://goo.gl/nJKP8B
          Post => Get_I_L1'Result in Float_Signed1000;
-      --  See https://goo.gl/nJKP8B
       function  Get_I_L2 return Float                       --  Get the current through L2
-         with Annotate => (GNATprove, Terminating),
+         with Annotate => (GNATprove, Terminating),         --  See https://goo.gl/nJKP8B
          Post => Get_I_L2'Result in Float_Signed1000;
       function  Get_I_Load return Float;                    --  Get the current through Load
-      --  See https://goo.gl/nJKP8B
       function  Get_U_C1 return Float                       --  Get the voltage over C1
-         with Annotate => (GNATprove, Terminating),
+         with Annotate => (GNATprove, Terminating),         --  See https://goo.gl/nJKP8B
          Post => Get_U_C1'Result in Float_Signed1000;
-      --  See https://goo.gl/nJKP8B
       function  Get_U_C2 return Float                       --  Get the voltage over C2
-         with Annotate => (GNATprove, Terminating),
+         with Annotate => (GNATprove, Terminating),         --  See https://goo.gl/nJKP8B
          Post => Get_U_C2'Result in Float_Signed1000;
       function  Get_U_V1 return Float;                      --  Get the voltage of V1
       function  Get_Sim_All return Sim_Output_T;            --  Get all output values
