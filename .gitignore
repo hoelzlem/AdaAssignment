@@ -6,3 +6,6 @@ obj/
 
 # Log file
 sim_output.csv
+
+# main.exe (if copied to ./)
+*.exe

@@ -77,36 +77,41 @@ package body PSU_Control is
       (C : in out PID_Controller_T; W : in Float; Y : in Float)
        return Float is
    begin
+      --  Standard implemetation of PID controller
       C.E1 := C.E;
       C.E := W - Y;
       C.P := C.E * C.Conf.Kp;
+      --  Intergrator with anti windup through back-calculation (fixed gain here)
       C.I := C.I + (C.E * C.Conf.Kp * C.Conf.Ki + C.Sat) * C.Conf.T;
       C.D := C.Conf.Kp * (C.E + (C.E - C.E1) * C.Conf.Kd / C.Conf.T);
-      C.Y := C.P + C.I + C.D;
-      if (C.Y < C.Conf.Sn) then
-         C.Sat := C.Conf.Sn - C.Y;
-      elsif (C.Y > C.Conf.Sp) then
-         C.Sat := C.Conf.Sp - C.Y;
+      C.U := C.P + C.I + C.D;
+      --  Saturation
+      if (C.U < C.Conf.Sn) then
+         C.Sat := C.Conf.Sn - C.U;
+      elsif (C.U > C.Conf.Sp) then
+         C.Sat := C.Conf.Sp - C.U;
       else
          C.Sat := 0.0;
       end if;
-      return C.Y + C.Sat;
+      return C.U + C.Sat;
    end calculate_U;
 
    function Do_Filtering (F : in out IIR_Filter_T; I : in Float) return Float is
       z0     : Float;
       result : Float;
    begin
+      --  Standard implementation of discrete direct form II filter
       z0 := F.gi * I - F.z1 * F.d1 - F.z2 * F.d2;
       result := z0 * F.n0 + F.z1 * F.n1 + F.z2 * F.n2;
       F.z2 := F.z1;
       F.z1 := z0;
-      return result;
+      return result * F.go;
    end Do_Filtering;
 
-   procedure Set_Config (F : in out IIR_Filter_T; gi, d1, d2, n0, n1, n2 : in Float) is
+   procedure Set_Config (F : in out IIR_Filter_T; gi, go, d1, d2, n0, n1, n2 : in Float) is
    begin
       F.gi := gi;
+      F.go := go;
       F.d1 := d1;
       F.d2 := d2;
       F.n0 := n0;
@@ -130,11 +135,12 @@ package body PSU_Control is
       U_V1_p           : Float := 1.0;
       Controllers      : PID_Controller_A_T;
       Filter           : IIR_Filter_T;
+      Period           : Time_Span := Milliseconds (100);
    begin
       Next_Time := Clock;
       while (not Sim.Is_Ready or not Ctrl.Is_Ready)
       loop
-         Next_Time := Next_Time + Milliseconds (200);
+         Next_Time := Next_Time + Period;
          delay until Next_Time;
       end loop;
       Conf := Ctrl.Get_Config;
@@ -142,20 +148,28 @@ package body PSU_Control is
       for id in PID_Controller_A_T'Range loop
          Controllers (id).Conf := Conf (id);
       end loop;
+      --  Theoretically controllers could run on different frequencies but only one is used here
+      --  If one would attempt to do that multiple tasks could be used for that
+      Period := Milliseconds (Integer (Conf (PID_I_L2).T * RT_MUL_S2MS));
+      --  Hard coded configuration of the filter used to track the peak value of V1
+      --  This filter is designed as lowpass with -60db at 50Hz
       Set_Config (F  => Filter,
-                  gi => 0.000024908586894469566207482164044151318,
-                  d1 => -1.985834014316131712618584970186930149794,
-                  d2 =>  0.9859336486637094720819618487439583987,
+                  gi => 0.000000044710606114963880230393891744914,
+                  go => 0.707945784384137910549839034501928836107,
+                  d1 => -1.999675711776111031170444221061188727617,
+                  d2 => 0.999675890618535456511040138138923794031,
                   n0 => 1.0,
                   n1 => 2.0,
                   n2 => 1.0);
       loop
-         Ada.Text_IO.Put_Line ("Control task active");
-         U_V1_p := Do_Filtering (Filter, abs Sim.Get_U_V1);
+         --  Filter the Voltage V1 to get rectified value and multiply with Crest factor
+         U_V1_p := Do_Filtering (Filter, abs Sim.Get_U_V1) * 1.414;
          if (Ctrl.Get_Safety_State) then
+            --  Run the contorllers for calculate desired currents and dutycycles
             I_L1 := calculate_U (C => Controllers (PID_U_C1),
                                  W => Ctrl.Get_W_U_C1,
                                  Y => Sim.Get_U_C1);
+            --  Scale disired current to achieve pfc
             I_L1 := I_L1 * Sim.Get_U_V1 / U_V1_p;
             I_L2 := calculate_U (C => Controllers (PID_U_C2),
                                  W => Ctrl.Get_W_U_C2,
@@ -166,17 +180,23 @@ package body PSU_Control is
             D_M2_5 := calculate_U (C => Controllers (PID_I_L2),
                                    W => I_L2,
                                    Y => Sim.Get_I_L2);
+            --  Set the dutycyles of the simulation to the calculated values
             Sim.Set_D_M1 (D_M1);
             Sim.Set_D_M2_5 (D_M2_5);
          else
+            --  Reset all controllers if system is shut down via safety input
             Reset (C => Controllers (PID_U_C1));
             Reset (C => Controllers (PID_U_C2));
             Reset (C => Controllers (PID_I_L1));
             Reset (C => Controllers (PID_I_L2));
+            --  Set the dutycycles of all transistors to 0.0 during shut down
             Sim.Set_D_M1 (0.0);
             Sim.Set_D_M2_5 (0.0);
          end if;
-         Next_Time := Next_Time + Milliseconds (Integer (Conf (PID_I_L2).T * RT_MUL_S2MS));
+         --  Print the values assigned to the dutycycles of M1 and M2 to M5
+         Ada.Text_IO.Put_Line ("Ctrl task -> D_M1: " & D_M1'Image & " D_M2_5: " & D_M2_5'Image);
+         --  Calculate next time the thread should run and delay until said time
+         Next_Time := Next_Time + Period;
          delay until Next_Time;
       end loop;
    end Control_Task_T;

@@ -2,6 +2,7 @@ pragma Profile (Ravenscar);
 
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO; use Ada.Text_IO;
+with global_constants; use global_constants;
 
 package PSU_Logging is
 
@@ -31,19 +32,19 @@ package PSU_Logging is
    logger_interface : Logger_Interface_T;
 
 private
-   TASK_PERIOD : constant Time_Span := Milliseconds (100);
+   TASK_PERIOD : constant Time_Span := Milliseconds (Integer (1.0 * RT_MUL));
 
    task logging_task;
 
    generic
       type Item_Type_t is private;
       with function Image (Item : Item_Type_t) return String;
-      procedure csv_put (File : in File_CHandle; Item : in Item_Type_t);
+   procedure csv_put (File : in File_CHandle; Item : in Item_Type_t);
 
    generic
       type Item_Type_t is private;
       with function Image (Item : Item_Type_t) return String;
-      procedure csv_end_line (File : in File_CHandle; Item : in Item_Type_t);
+   procedure csv_end_line (File : in File_CHandle; Item : in Item_Type_t);
 
    procedure write_header (File : in File_CHandle);
    procedure write_current_data (File : in File_CHandle; timestamp : in Duration);

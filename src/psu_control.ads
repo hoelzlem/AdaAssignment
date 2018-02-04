@@ -21,7 +21,7 @@ package PSU_Control is
          P    : Float := 0.0;  --  Proportional part
          I    : Float := 0.0;  --  Intergrator part
          D    : Float := 0.0;  --  Differential part
-         Y    : Float := 0.0;  --  Output
+         U    : Float := 0.0;  --  Output
          Sat  : Float := 0.0;  --  Saturation
       end record;
    function calculate_U (C : in out PID_Controller_T; W : in Float; Y : in Float) return Float; --  Run the PID controller
@@ -33,6 +33,7 @@ package PSU_Control is
          z1   : Float := 0.0;  --  Previous input (z-1)
          z2   : Float := 0.0;  --  Input * z-2
          gi   : Float := 0.0;  --  Input Gain
+         go   : Float := 0.0;  --  Output Gain
          d1   : Float := 0.0;  --  Denumerator 1
          d2   : Float := 0.0;  --  Denumerator 2
          n0   : Float := 0.0;  --  Numerator 0
@@ -40,7 +41,7 @@ package PSU_Control is
          n2   : Float := 0.0;  --  Numerator 2
       end record;
    function Do_Filtering (F : in out IIR_Filter_T; I : in Float) return Float;         --  Filter the signal (called in a fixed interval)
-   procedure Set_Config (F : in out IIR_Filter_T; gi, d1, d2, n0, n1, n2 : in Float);  --  Set the configuration of the Filter
+   procedure Set_Config (F : in out IIR_Filter_T; gi, go, d1, d2, n0, n1, n2 : in Float);  --  Set the configuration of the Filter
 
    type PID_Target_T is (PID_U_C1, PID_U_C2, PID_I_L1, PID_I_L2);            --  Enum: List of all controllers
    type PID_Config_A_T is array (PID_Target_T)  of PID_Config_T;             --  Config for all Controllers
@@ -61,8 +62,8 @@ package PSU_Control is
       procedure Set_W_U_C2 (Val : in Float);                               --  Get the setpoint of the voltage over C2
       procedure Set_Safety_State (Val : in Boolean);                       --  Get the current saftey state (supplied by monitoring)
    private
-      W_U_C1       : Float := 200.0;                                         --  Buffer
-      W_U_C2       : Float := 10.0;                                         --  Buffer
+      W_U_C1       : Float := 0.0;                                         --  Buffer
+      W_U_C2       : Float := 0.0;                                         --  Buffer
       Conf         : PID_Config_A_T;                                       --  Buffer
       Conf_ALL_OK  : Boolean := False;                                     --  Status of configuration
       Conf_State   : PID_Config_Status_A_T := (others => False);           --  Status of a single configuration
