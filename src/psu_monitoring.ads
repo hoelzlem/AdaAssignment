@@ -1,6 +1,9 @@
---  The powersupply has multiple controlled state variables; two currents and two voltages. Its controller is not failsafe and especially capacitors are prone to damage from overvoltage.
---  This package provides a SPARK proven, independent monitor which deactivates the power stages when certain limits on the state variables are violated.
---  The monitoring fuction is implemented with two finite state machines. Four monitors that observe one state variable each and report undesirable behaviour to a supervisor that handles activation and shutdown of the power stages.
+--  The powersupply has multiple controlled state variables; two currents and two voltages.
+--  Its controller is not failsafe and especially capacitors are prone to damage from overvoltage.
+--  This package provides a SPARK proven, independent monitor which deactivates the power stages
+--  when certain limits on the state variables are violated.
+--  The monitoring fuction is implemented with two finite state machines. Four monitors that observe one
+--  state variable each and report undesirable behaviour to a supervisor that handles activation and shutdown of the power stages.
 --  The package operates like so:
 --    1. the package starts a task independent from the controller and awaits configuration via the monitoring interface
 --    2. supervisor and monitors are configurated and ready to start operation
@@ -39,15 +42,19 @@ package PSU_Monitoring is
 
    type Monitor_Config_T is record
       --  The monitor can work based on two kinds of limit specification:
-      --    mean_based: You specify a desired value for the monitored signal (typically equal to the controllers setpoint) and a maximum allowed deviation from that value. The monitor will signal an alert if the maximum deviation is exceeded.
-      --    threshold_based: You specify minimum and maximum values for the monitored signal. The monitor will signal an alert if either of the limts is exceeded.
+      --    * mean_based: You specify a desired value for the monitored signal (typically equal to the controllers setpoint)
+      --      and a maximum allowed deviation from that value. The monitor will signal an alert if the maximum deviation is exceeded.
+      --    * threshold_based: You specify minimum and maximum values for the monitored signal. The monitor will signal an alert
+      --      if either of the limts is exceeded.
       monitoring_mode : Monitoring_Mode_T := mean_based;
 
       mean : Float_Signed1000 := 0.0;
       maximum_deviation : Maximum_Deviation_T := 100.0e-3;
       lower_threshold : Float_Signed1000 := -100.0e-3;
       upper_threshold : Float_Signed1000 := 100.0e-3;
-      --  Typical controller designs allow for some overshoot to make the controller faster. This is typical behaviour during controller startup an must not trip the monitor. The monitor will allow higher deviation, by widening the tolerance band spanned by mean and deviation or lower and upper threshold, from the desired value by this factor in either of both monitoring modes.
+      --  Typical controller designs allow for some overshoot to make the controller faster. This is typical behaviour during controller
+      --  startup an must not trip the monitor. The monitor will allow higher deviation, by widening the tolerance band spanned by mean
+      --  and deviation or lower and upper threshold, from the desired value by this factor in either of both monitoring modes.
       settling_tolerance_expansion : Expansion_Factor_T := 1.2;
       --  Maximum time the monitored signal is allowed to be outside the nominal tolerance band during monitors startup state
       startup_time   : Time_Span := Milliseconds (5);
@@ -65,7 +72,8 @@ package PSU_Monitoring is
    type Monitor_T is record
       --  The monitors configuration is passed by a call to the monitoring interface
       config        : Monitor_Config_T;
-      --  The FSM has some time controlled transitions  and needs a timer to keep track of the time spend in the current state. The timer is only incremented in states with outgoing time controlled transitions.
+      --  The FSM has some time controlled transitions  and needs a timer to keep track of the time spend in the current state. The timer
+      --  is only incremented in states with outgoing time controlled transitions.
       timer         : Time_Span := Milliseconds (0);
       --  FSM states; current and next state are separated to make the code easier to understand
       current_state : Monitor_State_T := reset;
@@ -75,16 +83,20 @@ package PSU_Monitoring is
    type Supervisor_T is record
       --  The supervisors configuration is passed by a call to the monitoring interface
       config : Supervisor_Config_T;
-      --  The FSM has some time controlled transitions  and needs a timer to keep track of the time spend in the current state. The timer is only incremented in states with outgoing time controlled transitions.
+      --  The FSM has some time controlled transitions  and needs a timer to keep track of the time spend in the current state. The timer
+      --  is only incremented in states with outgoing time controlled transitions.
       timer : Time_Span := Milliseconds (0);
       --  FSM states; current and next state are separated to make the code easier to understand
       current_state : Supervisor_State_T := reset;
       next_state : Supervisor_State_T := reset;
    end record;
 
-   --  This protected interface is used for inter task safe configuration of supervisor and monitors. The user must call each setter function at least once or the monitoring task won't run. The getter functions are used by the monitoring task to retrieve the user defined configuration and is not meant to be used by other tasks.
+   --  This protected interface is used for inter task safe configuration of supervisor and monitors. The user must call each setter function
+   --  at least once or the monitoring task won't run. The getter functions are used by the monitoring task to retrieve the user defined
+   --  configuration and is not meant to be used by other tasks.
    protected type Monitoring_Interface_T is
-      --  The monitoring task is only allowed to run after supervisor and all monitors have been configured properly. This function is used to determine whether all configurations were written at least once.
+      --  The monitoring task is only allowed to run after supervisor and all monitors have been configured properly. This function is used
+      --  to determine whether all configurations were written at least once.
       function is_all_config_set return Boolean;
 
       procedure set_supervisor_config (new_supervisor_config : in Supervisor_Config_T);
@@ -169,12 +181,14 @@ private
 
    --  Checks whether a signal is within the nominal tolerance band of its associated monitor
    function is_within_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean
-      with Pre => ((if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold)),
+     with Pre => ((if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0)
+                  and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold)),
          Global => null,
          Depends => (is_within_limits'Result => (monitor, signal_value));
 
    --  Calculate in which value a nominal threshold results for the expanded tolerance band.
-   --  This function was solely introduced to be able to add postconditions to tackle this problem https://goo.gl/TWWQ86. It did not solve the problem, since the postconditions could not be proved, but made adding a proper annotation sensible.
+   --  This function was solely introduced to be able to add postconditions to tackle this problem https://goo.gl/TWWQ86. It did not solve the problem,
+   --  since the postconditions could not be proved, but made adding a proper annotation sensible.
    function expand_threshold (threshold : in Float_Signed1000; expansion_factor : Expansion_Factor_T; T : Threshold_T) return Float_Signed10000
       with Pre => (expansion_factor > 1.0),
          Contract_Cases => ((T = lower) => (expand_threshold'Result <= threshold),
@@ -185,7 +199,9 @@ private
 
    --  Checks whether a signal is within the expanded tolerance band of its associated monitor
    function is_within_expanded_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean
-      with Pre => ((if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0) and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold) and then monitor.config.settling_tolerance_expansion > 1.0),
+     with Pre => ((if monitor.config.monitoring_mode = mean_based then monitor.config.maximum_deviation > 0.0)
+                  and then (if monitor.config.monitoring_mode = threshold_based then monitor.config.lower_threshold < monitor.config.upper_threshold)
+                  and then monitor.config.settling_tolerance_expansion > 1.0),
          Global => null,
          Depends => (is_within_expanded_limits'Result => (monitor, signal_value));
 

@@ -5,12 +5,16 @@ project Pfc_Psu is
    for Main use ("main.adb");
 
    package Compiler is
-      for Switches ("ada") use ("-gnatyyy", "-gnatwa.n", "-gnatf", "-gnato", "-gnata", "-gnatVa", "-gnatyyyM500");
+      for Switches ("ada") use ("-gnatyy", "-gnatwa.n", "-gnatf", "-gnato", "-gnata", "-gnatVa", "-gnatyM160");
    end Compiler;
 
    package Linker is
       for Switches ("ada") use ("-fprofile-generate", "-fprofile-generate");
    end Linker;
+
+   package Prove is
+      for Switches use ("--level=2", "-j4");
+   end Prove;
 
 end Pfc_Psu;
 

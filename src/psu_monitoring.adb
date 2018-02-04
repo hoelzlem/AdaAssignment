@@ -9,7 +9,9 @@ package body PSU_Monitoring is
 
       function is_all_config_set return Boolean is
       begin
-         return supervisor_config_set and monitor_pfc_voltage_config_set and monitor_pfc_current_config_set and monitor_output_voltage_config_set and monitor_output_current_config_set;
+         return supervisor_config_set and monitor_pfc_voltage_config_set
+           and monitor_pfc_current_config_set and monitor_output_voltage_config_set
+           and monitor_output_current_config_set;
       end is_all_config_set;
 
       procedure set_supervisor_config (new_supervisor_config : in Supervisor_Config_T) is
@@ -127,7 +129,8 @@ package body PSU_Monitoring is
             expanded_lower_threshold := expand_threshold (monitor.config.lower_threshold, monitor.config.settling_tolerance_expansion, lower);
             expanded_upper_threshold := expand_threshold (monitor.config.upper_threshold, monitor.config.settling_tolerance_expansion, upper);
 
-            --  @TODO this assertion is troublesome and couldn't be proved without using annotations yet. The lemma library might help but time was short in the end.
+            --  @TODO this assertion is troublesome and couldn't be proved without using annotations yet.
+            --  The lemma library might help but time was short in the end.
             pragma Assert (expanded_lower_threshold < expanded_upper_threshold);
 
             --  Check limits with expanded thresholds
@@ -225,7 +228,8 @@ package body PSU_Monitoring is
          all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
       begin
          pragma Assert (all_config_is_set);
-         pragma Annotate (GNATprove, False_Positive, "assertion might fail", "The assertion can't fail because this procedure is exclusively called from monitoring_task and only if is_all_config_set returns True");
+         pragma Annotate (GNATprove, False_Positive, "assertion might fail",
+                         "The assertion can't fail because this procedure is only called by the task if is_all_config_set returns True");
       end;
 
       --  Update supervisor state
@@ -247,7 +251,9 @@ package body PSU_Monitoring is
             do_monitoring;
 
             --  Check if either of the monitors is in state shutdown
-            if monitor_pfc_voltage.current_state = shutdown or monitor_pfc_current.current_state = shutdown or monitor_output_voltage.current_state = shutdown or monitor_output_current.current_state = shutdown then
+            if monitor_pfc_voltage.current_state = shutdown or monitor_pfc_current.current_state = shutdown
+              or monitor_output_voltage.current_state = shutdown or monitor_output_current.current_state = shutdown
+            then
                --  At least one state variable violated its limits => shutdown required
                supervisor.next_state := shutdown;
                supervisor.timer := Milliseconds (0);
