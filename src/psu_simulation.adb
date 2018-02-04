@@ -148,6 +148,7 @@ package body PSU_Simulation is
       Conf       := Sim.Get_Config;
       Load_A     := Sim.Get_Load;
       Start_Time := Clock;
+      Sim.Set_Start_Time (Start_Time);
       loop
          --  Get new new value for load and calculate the electrical terms
          Load := Get_Load_Actual (Start_Time, Load_A);

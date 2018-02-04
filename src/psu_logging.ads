@@ -2,7 +2,6 @@ pragma Profile (Ravenscar);
 
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO; use Ada.Text_IO;
-with System;
 
 --  @TODO add logging of minimum and maximum values of a signal during two logging samples
 --  @TODO add current load to logged signals
@@ -37,9 +36,7 @@ package PSU_Logging is
 private
    TASK_PERIOD : constant Time_Span := Milliseconds (100);
 
-   task logging_task is
-      pragma Priority (System.Priority'First);
-   end logging_task;
+   task logging_task;
 
    generic
       type Item_Type_t is private;

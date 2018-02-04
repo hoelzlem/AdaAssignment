@@ -6,6 +6,7 @@ use  Ada.Containers;
 with PSU_Simulation; use PSU_Simulation;
 with PSU_Control; use PSU_Control;
 with PSU_Monitoring; use PSU_Monitoring;
+with PSU_Logging; use PSU_Logging;
 
 with CONFIG_Parser; use CONFIG_Parser;
 
@@ -17,7 +18,7 @@ procedure Main is
    simConfigFT         : File_Type;
    monitorConfigFT     : File_Type;
    loadDefFT           : File_Type;
-   outputFT            : File_Type;
+   outputFT            : aliased File_Type;
    PID_Conf_A          : PID_Config_A_T;
    Sim_Config          : Sim_Config_T;
    configValid         : Boolean;
@@ -35,13 +36,13 @@ begin
    Put_Line ("Do you want to load default config files? [y/n]");
    if (Get_Line (Standard_Input) = "y") then
       Open_File (File => simConfigFT,
-                 Name => "good_config.txt");
+                 Name => "std_sim_config.txt");
       Open_File (File => monitorConfigFT,
-                 Name => "good_monitor.txt");
+                 Name => "std_monitor_config.txt");
       Open_File (File => loadDefFT,
-                 Name => "good_load.txt");
+                 Name => "std_load_config.txt");
       Create_File (File => outputFT,
-                   Name => "out.txt");
+                   Name => "sim_output.csv");
    else
       Put_Line ("Please specify the path to the configuration file of the simulation: ");
       Open_File (File => simConfigFT,
@@ -77,10 +78,11 @@ begin
       Sim.Set_Load (loadArray);
    end if;
 
+   logger_interface.set_logfile (outputFT'Unchecked_Access);
+
    Close_File (simConfigFT);
    Close_File (monitorConfigFT);
    Close_File (loadDefFT);
-   Close_File (outputFT);
 
 end Main;
 

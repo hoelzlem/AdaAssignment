@@ -43,7 +43,8 @@ package body PSU_Logging is
    procedure csv_end_line_signal_name is new csv_end_line (Item_Type_t => logged_signal_names_t, Image => logged_signal_names_t'Image);
 
    task body logging_task is
-      next_time : Time := Clock;
+      start_time : constant Time := Clock;
+      next_time : Time := start_time;
    begin
       while not logger_interface.is_all_config_set loop
          next_time := next_time + TASK_PERIOD;
@@ -53,16 +54,11 @@ package body PSU_Logging is
       write_header (logger_interface.get_logfile);
 
       loop
-         Put_Line ("Running logging task: writing current data");
-
-         write_current_data (logger_interface.get_logfile, To_Duration (next_time - Sim.Get_Start_Time));
+         write_current_data (logger_interface.get_logfile, To_Duration (next_time - start_time));
 
          next_time := next_time + TASK_PERIOD;
          delay until next_time;
       end loop;
-   exception
-      when others =>
-         Put_Line (Standard_Error, "An exception occured");
    end logging_task;
 
    procedure write_header (File : in File_CHandle) is
@@ -82,8 +78,8 @@ package body PSU_Logging is
       csv_put_float (File, Sim.Get_U_C1);
       csv_put_float (File, Sim.Get_I_L2);
       csv_put_float (File, Sim.Get_U_C2);
-      csv_put_float (File, Sim.Get_I_Load);
-      csv_end_line_float (File, Sim.Get_Load);
+      csv_end_line_float (File, Sim.Get_I_Load);
+      --  csv_end_line_float (File, Sim.Get_Load);
    end write_current_data;
 
 end PSU_Logging;

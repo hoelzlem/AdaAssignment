@@ -1,14 +1,8 @@
-# Object file
-*.o
-
-# Ada Library Information
-*.ali
-
 # Object folder
 obj/
 
-# Simons scripts
-build_run.bat
+# VS Code settings
+.vscode/
 
 # Log file
-PSU.log
+sim_output.csv
