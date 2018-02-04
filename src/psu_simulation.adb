@@ -69,6 +69,11 @@ package body PSU_Simulation is
          return Loads;
       end Get_Load;
 
+      function Get_Current_Load return Float is
+      begin
+         return current_load;
+      end Get_Current_Load;
+
       function  Get_Start_Time return Ada.Real_Time.Time is
       begin
          return T_Start;
@@ -100,6 +105,11 @@ package body PSU_Simulation is
          Loads := Val;
          Load_OK := True;
       end Set_Load;
+
+      procedure Set_Current_Load (Val : in Float) is
+      begin
+         current_load := Val;
+      end Set_Current_Load;
 
       procedure Set_Start_Time (Val : Ada.Real_Time.Time) is
       begin
@@ -152,6 +162,7 @@ package body PSU_Simulation is
       loop
          --  Get new new value for load and calculate the electrical terms
          Load := Get_Load_Actual (Start_Time, Load_A);
+         Sim.Set_Current_Load (Load);
          Ada.Text_IO.Put_Line ("Load set to: " & Load'Image);
          Act.I_L1   := Prev.I_L1 + (Sim.Get_D_M1 * abs (Prev.U_V1) - (1.0 - Sim.Get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
          Act.I_L2   := Prev.I_L2 + (Sim.Get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;

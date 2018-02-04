@@ -79,8 +79,8 @@ package body PSU_Logging is
       csv_put_float (File, Sim.Get_U_C1);
       csv_put_float (File, Sim.Get_I_L2);
       csv_put_float (File, Sim.Get_U_C2);
-      csv_end_line_float (File, Sim.Get_I_Load);
-      --  csv_end_line_float (File, Sim.Get_Load);
+      csv_put_float (File, Sim.Get_I_Load);
+      csv_end_line_float (File, Sim.Get_Current_Load);
    end write_current_data;
 
 end PSU_Logging;

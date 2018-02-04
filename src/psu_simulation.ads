@@ -57,12 +57,14 @@ package PSU_Simulation is
       function  Get_D_M1 return Float;                  --  Get the dutycycle for M1
       function  Get_D_M2_5 return Float;                --  Get the dutycycle for M2 to M5
       function  Get_Load return loadArray_T;            --  Get the load configuration
+      function  Get_Current_Load return Float;          --  Get the current load resistance (for logging)
       function  Get_Start_Time return Ada.Real_Time.Time;
       procedure Set_Config (Val : in Sim_Config_T);     --  Set the hardware configuration of this simulation
       procedure Set_D_M1 (Val : in Float);              --  Set the dutycycle for M1
       procedure Set_D_M2_5 (Val : in Float);            --  Set the dutycycle for M2 to M5
       procedure Set_Sim_Out (Val : in Sim_Output_T);    --  Set all output values
       procedure Set_Load (Val : in loadArray_T);        --  Set the load configuration
+      procedure Set_Current_Load (Val : in Float);      --  Set the current load resistance (for logging)
       procedure Set_Start_Time (Val : Ada.Real_Time.Time);
 
    private
@@ -70,7 +72,8 @@ package PSU_Simulation is
       D_M2_5    : Float := 0.0;                                     --  Buffer
       D_M1      : Float := 0.0;                                     --  Buffer
       Conf      : Sim_Config_T;                                     --  Buffer
-      Loads     : loadArray_T := (others => (others => 0.0));       --  Buffer
+      Loads     : loadArray_T := (others => (others => 0.0));
+      current_load : Float := 0.0;                                  --  Current load resistance
       Conf_OK   : Boolean := False;                                 --  Status of initilization (true when configuration is set)
       Load_OK   : Boolean := False;                                 --  Status of initilization (true when load is set)
       T_Start   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;   --  Buffer
