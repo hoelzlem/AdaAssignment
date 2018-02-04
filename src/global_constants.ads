@@ -16,7 +16,7 @@ package global_constants is
 
    --  Factor used to slow down tasking
    --  The simulation is not able to run in in real time (would be a few ns)
-   RT_MUL             : Time_Dilation_Factor_T := 1.0e4;
+   RT_MUL             : Time_Dilation_Factor_T := 1.0e2;
    RT_MUL_S2MS        : Float := 1.0e3 * RT_MUL;
    RT_MUL_S2US        : Float := 1.0e3 * RT_MUL_S2MS;
 
