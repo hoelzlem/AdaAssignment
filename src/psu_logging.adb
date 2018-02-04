@@ -1,5 +1,6 @@
 pragma Profile (Ravenscar);
 
+with global_constants; use global_constants;
 with PSU_Simulation; use PSU_Simulation;
 
 package body PSU_Logging is
@@ -54,7 +55,7 @@ package body PSU_Logging is
       write_header (logger_interface.get_logfile);
 
       loop
-         Put_Line ("Running logging task");
+         Put_Line (vt100_YELLOW & "Running logging task" & vt100_RESET);
          write_current_data (logger_interface.get_logfile, To_Duration (next_time - start_time));
 
          next_time := next_time + TASK_PERIOD;

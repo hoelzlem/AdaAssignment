@@ -153,13 +153,13 @@ package body PSU_Simulation is
          Next_Time := Next_Time + Milliseconds (200);
          delay until Next_Time;
       end loop;
-      Ada.Text_IO.Put_Line ("Sim task active");
       --  Aquire settings (done once only)
       Conf       := Sim.Get_Config;
       Load_A     := Sim.Get_Load;
       Start_Time := Clock;
       Sim.Set_Start_Time (Start_Time);
       loop
+         Ada.Text_IO.Put_Line (vt100_GREEN & "Running simulation task" & vt100_RESET);
          --  Get new new value for load and calculate the electrical terms
          Load := Get_Load_Actual (Start_Time, Load_A);
          Sim.Set_Current_Load (Load);

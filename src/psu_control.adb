@@ -150,7 +150,7 @@ package body PSU_Control is
                   n1 => 2.0,
                   n2 => 1.0);
       loop
-         Ada.Text_IO.Put_Line ("Control task active");
+         Ada.Text_IO.Put_Line (vt100_CYAN & "Running control task" & vt100_RESET);
          U_V1_p := Do_Filtering (Filter, abs Sim.Get_U_V1);
          if (Ctrl.Get_Safety_State) then
             I_L1 := calculate_U (C => Controllers (PID_U_C1),
