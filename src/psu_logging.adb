@@ -54,6 +54,7 @@ package body PSU_Logging is
       write_header (logger_interface.get_logfile);
 
       loop
+         Put_Line ("Running logging task");
          write_current_data (logger_interface.get_logfile, To_Duration (next_time - start_time));
 
          next_time := next_time + TASK_PERIOD;

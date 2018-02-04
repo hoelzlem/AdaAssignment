@@ -3,9 +3,6 @@ pragma Profile (Ravenscar);
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO; use Ada.Text_IO;
 
---  @TODO add logging of minimum and maximum values of a signal during two logging samples
---  @TODO add current load to logged signals
-
 package PSU_Logging is
 
    type File_CHandle is access constant File_Type;

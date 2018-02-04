@@ -129,7 +129,7 @@ package body PSU_Monitoring is
             expanded_lower_threshold := expand_threshold (monitor.config.lower_threshold, monitor.config.settling_tolerance_expansion, lower);
             expanded_upper_threshold := expand_threshold (monitor.config.upper_threshold, monitor.config.settling_tolerance_expansion, upper);
 
-            --  @TODO this assertion is troublesome and couldn't be proved without using annotations yet.
+            --  @M. Becker - This assertion is troublesome and couldn't be proved without using annotations yet.
             --  The lemma library might help but time was short in the end.
             pragma Assert (expanded_lower_threshold < expanded_upper_threshold);
 
@@ -145,7 +145,7 @@ package body PSU_Monitoring is
 
    procedure monitor_signal (monitor : in out Monitor_T; signal_value : in Float_Signed1000) is
    begin
-      --  Update monitor state
+      --  Update FSM state
       monitor.current_state := monitor.next_state;
       --  Perform FSM actions and determine next state
       case monitor.current_state is
@@ -232,7 +232,7 @@ package body PSU_Monitoring is
                          "The assertion can't fail because this procedure is only called by the task if is_all_config_set returns True");
       end;
 
-      --  Update supervisor state
+      --  Update FSM state
       supervisor.current_state := supervisor.next_state;
       --  Perform FSM actions and determine next state
       case supervisor.current_state is

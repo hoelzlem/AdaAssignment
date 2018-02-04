@@ -15,6 +15,11 @@
 --    8. the supervisor leaves shutdown state and activates all monitors and the power stages
 --    9. continue with 4.
 
+--  @M. Becker - I was not able to find an elegant way to satisfy the preconditions for is_within_limits and is_within_expanded_limits.
+--  The condition can't be fulfilled by constraining the datatypes for lower_threshold < upper_threshold further because that would limit
+--  the threshold_based mode too much. I'm currently relying on the runtime checks (-gnata) of the preconditions. Thanks also for your help
+--  on stackoverflow, I wouldn't have gotten so far without your advice. ~ Simon
+
 pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
