@@ -132,7 +132,7 @@ package body PSU_Control is
       Next_Time        : Time := Clock;
       D_M1, D_M2_5     : Float := 0.0;
       I_L1, I_L2       : Float := 0.0;
-      U_V1_p           : Float := 1.0;
+      U_V1, U_V1_p     : Float := 1.0;
       Controllers      : PID_Controller_A_T;
       Filter           : IIR_Filter_T;
       Period           : Time_Span := Milliseconds (100);
@@ -154,23 +154,26 @@ package body PSU_Control is
       --  Hard coded configuration of the filter used to track the peak value of V1
       --  This filter is designed as lowpass with -60db at 50Hz
       Set_Config (F  => Filter,
-                  gi => 0.000000044710606114963880230393891744914,
-                  go => 0.707945784384137910549839034501928836107,
-                  d1 => -1.999675711776111031170444221061188727617,
-                  d2 => 0.999675890618535456511040138138923794031,
+                  gi => 0.000000616221627524874891962489847907491,
+                  go => 1.0,
+                  d1 => -1.997778458681547242292708688182756304741,
+                  d2 =>  0.997780923568057143135945352696580812335,
                   n0 => 1.0,
                   n1 => 2.0,
                   n2 => 1.0);
       loop
          --  Filter the Voltage V1 to get rectified value and multiply with Crest factor
-         U_V1_p := Do_Filtering (Filter, abs Sim.Get_U_V1) * 1.414;
-         if (Ctrl.Get_Safety_State) then
+         U_V1 := Sim.Get_U_V1;
+         U_V1_p := Do_Filtering (Filter, abs U_V1) * 1.414 + Float'Small;
+         if (Ctrl.Get_Safety_State or Sim.Is_Ready) then
             --  Run the contorllers for calculate desired currents and dutycycles
             I_L1 := calculate_U (C => Controllers (PID_U_C1),
                                  W => Ctrl.Get_W_U_C1,
                                  Y => Sim.Get_U_C1);
             --  Scale disired current to achieve pfc
-            I_L1 := I_L1 * Sim.Get_U_V1 / U_V1_p;
+            if (abs U_V1 < U_V1_p) then
+               I_L1 := I_L1 * abs U_V1 / U_V1_p;
+            end if;
             I_L2 := calculate_U (C => Controllers (PID_U_C2),
                                  W => Ctrl.Get_W_U_C2,
                                  Y => Sim.Get_U_C2);
@@ -194,7 +197,9 @@ package body PSU_Control is
             Sim.Set_D_M2_5 (0.0);
          end if;
          --  Print the values assigned to the dutycycles of M1 and M2 to M5
-         Ada.Text_IO.Put_Line (vt100_CYAN & "Running control task " & vt100_RESET & "-> D_M1: " & D_M1'Image & " D_M2_5: " & D_M2_5'Image);
+         Ada.Text_IO.Put_Line (vt100_CYAN & "Running control task " & vt100_RESET);
+         Ada.Text_IO.Put_Line ("Ctrl task -> Safety: " & Ctrl.Get_Safety_State'Image & " I_L1: " & I_L1'Image & " I_L2: " & I_L2'Image);
+         Ada.Text_IO.Put_Line ("Ctrl task -> D_M1: " & D_M1'Image & " D_M2_5: " & D_M2_5'Image & " UPV1: " & U_V1_p'Image);
          --  Calculate next time the thread should run and delay until said time
          Next_Time := Next_Time + Period;
          delay until Next_Time;

@@ -31,7 +31,7 @@ package PSU_Logging is
    logger_interface : Logger_Interface_T;
 
 private
-   TASK_PERIOD : constant Time_Span := Milliseconds (1);
+   TASK_PERIOD : constant Time_Span := Microseconds (100);
 
    task logging_task;
 

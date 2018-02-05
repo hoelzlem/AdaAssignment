@@ -167,27 +167,39 @@ package body PSU_Simulation is
          --  Get new new value for load and calculate the electrical terms
          Load := Get_Load_Actual (Start_Time, Load_A);
          Sim.Set_Load (Load);
-         Ada.Text_IO.Put (vt100_MAGENTA & "Running simulation task " & vt100_RESET & "-> Load: " & Load'Image);
+         Ada.Text_IO.Put_Line (vt100_MAGENTA & "Running simulation task " & vt100_RESET);
+         --  This for loop is used to speed up the simulation
+         --  With this little trick there are less context switches and there is way less output to command line
+         for i in Integer range 1 .. 100 loop
          --  Calculate the electrical terms (see schematic of the circuit)
-         Act.I_L1   := Prev.I_L1 + (Sim.Get_D_M1 * abs (Prev.U_V1) - (1.0 - Sim.Get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
-         Act.I_L2   := Prev.I_L2 + (Sim.Get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;
-         Act.U_C2   := (Prev.I_L2 - Prev.I_Load) * Conf.T / Conf.C2;
-         Act.U_C1   := (Prev.I_L1 - Sim.Get_D_M2_5 * Prev.I_L2) * Conf.T / Conf.C1;
-         Act.I_Load := Prev.U_C2 / Load;
+            Act.I_L1   := Prev.I_L1 + (Sim.Get_D_M1 * abs (Prev.U_V1) - (1.0 - Sim.Get_D_M1) * Prev.U_C1) * Conf.T / Conf.L1;
+            if (Act.I_L1 < 0.0) then
+               Act.I_L1 := 0.0;
+            end if;
+            Act.I_L2   := Prev.I_L2 + (Sim.Get_D_M2_5 * Prev.U_C1 - Prev.U_C2) * Conf.T / Conf.L2;
+            if (Act.I_L2 < 0.0) then
+               Act.I_L2 := 0.0;
+            end if;
+            Act.U_C2   := Prev.U_C2 + (Prev.I_L2 - Prev.I_Load) * Conf.T / Conf.C2;
+            Act.U_C1   := Prev.U_C1 + (Prev.I_L1 - Sim.Get_D_M2_5 * Prev.I_L2) * Conf.T / Conf.C1;
+            Act.I_Load := Prev.U_C2 / Load;
          --  Calculate the next value of the mains voltage
-         if (Conf.f_V1 > 0.0001) then
-            Angle    := Float'Remainder ((Angle + Conf.T * Conf.f_V1 * 2.0 * Ada.Numerics.Pi), (2.0 * Ada.Numerics.Pi));
-            Act.U_V1 := Conf.Up_V1 * Ada.Numerics.Elementary_Functions.Sin (Angle);
-         else
+            if (Conf.f_V1 > 0.0001) then
+               Angle    := Float'Remainder ((Angle + Conf.T * Conf.f_V1 * 2.0 * Ada.Numerics.Pi), (2.0 * Ada.Numerics.Pi));
+               Act.U_V1 := Conf.Up_V1 * Ada.Numerics.Elementary_Functions.Sin (Angle);
+            else
             --  If running on DC voltage
-            Act.U_V1 := Conf.Up_V1;
-         end if;
+               Act.U_V1 := Conf.Up_V1;
+            end if;
+            Prev := Act;
+         end loop;
          --  Set the outputs
-         Ada.Text_IO.Put_Line (" V1: " & Act.U_V1'Image & " UC1: " & Act.U_C1'Image & " UC2: " & Act.U_C2'Image);
-         Prev      := Act;
+         Ada.Text_IO.Put_Line ("Sim task -> Load: " & Load'Image & " V1: " & Act.U_V1'Image);
+         Ada.Text_IO.Put_Line ("Sim task -> UC1: " & Act.U_C1'Image & " UC2: " & Act.U_C2'Image);
+         Ada.Text_IO.Put_Line ("Sim task -> IL1: " & Act.I_L1'Image & " IL2: " & Act.I_L2'Image);
          Sim.Set_Sim_Out (Act);
          --  Calculate next time the thread should run and delay until said time
-         Next_Time := Next_Time + Period;
+         Next_Time := Next_Time + 100 * Period;
          delay until Next_Time;
       end loop;
    end Simulation_Task_T;

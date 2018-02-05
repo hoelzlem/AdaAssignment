@@ -143,7 +143,7 @@ private
       pragma Priority (System.Priority'Last);
    end monitoring_task;
 
-   TASK_PERIOD : constant Time_Span := Milliseconds (1);
+   TASK_PERIOD : constant Time_Span := Microseconds (100);
 
    supervisor : Supervisor_T;
    monitor_pfc_voltage    : Monitor_T;
