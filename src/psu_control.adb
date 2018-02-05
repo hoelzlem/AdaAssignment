@@ -165,7 +165,7 @@ package body PSU_Control is
          --  Filter the Voltage V1 to get rectified value and multiply with Crest factor
          U_V1 := Sim.Get_U_V1;
          U_V1_p := Do_Filtering (Filter, abs U_V1) * 1.414 + Float'Small;
-         if (Ctrl.Get_Safety_State or Sim.Is_Ready) then
+         if Ctrl.Get_Safety_State then
             --  Run the contorllers for calculate desired currents and dutycycles
             I_L1 := calculate_U (C => Controllers (PID_U_C1),
                                  W => Ctrl.Get_W_U_C1,

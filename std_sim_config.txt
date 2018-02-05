@@ -38,7 +38,7 @@ Sim_C1 470.0e-6
 Sim_L2 470.0e-6
 Sim_C2 47.0e-6
 Sim_f_V1 50.0
-Sim_Up_V1 230.0
+Sim_Up_V1 325.0
 - Simulation time should be around 14 ns but is 10 us here (faster)
 - As a consequence accuracy of the simulation will not be to great
 Sim_T 100.0e-9

@@ -81,8 +81,8 @@ begin
    logger_interface.set_logfile (outputFT'Unchecked_Access);
 
    --  Set the disired voltages
-   Ctrl.Set_W_U_C1 (200.0);
-   Ctrl.Set_W_U_C2 (10.0);
+   Ctrl.Set_W_U_C1 (350.0);
+   Ctrl.Set_W_U_C2 (24.0);
 
    Close_File (simConfigFT);
    Close_File (monitorConfigFT);
