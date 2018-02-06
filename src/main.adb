@@ -3,6 +3,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Indefinite_Vectors;
 use  Ada.Containers;
 
+with global_constants; use global_constants;
 with PSU_Simulation; use PSU_Simulation;
 with PSU_Control; use PSU_Control;
 with PSU_Monitoring; use PSU_Monitoring;
@@ -71,6 +72,13 @@ begin
       monitoring_interface.set_monitor_pfc_current_config (pfc_current_config);
       monitoring_interface.set_monitor_output_voltage_config (out_voltage_config);
       monitoring_interface.set_monitor_output_current_config (out_current_config);
+
+      --  Check if config was accepted
+      if monitoring_interface.is_config_erroneous then
+         Put_Line (vt100_RED & "One of the monitor configuration structures was specified with lower_threshold > upper_threshold "
+                   & "while monitoring mode was set to threshold_based. This configuration is not suitable and must be corrected. "
+                   & "The monitoring module won't run otherwise." & vt100_RESET);
+      end if;
    end if;
 
    parseLoad (loadDefFT, loadArray, loadValid, numLoadValues);
@@ -80,7 +88,7 @@ begin
 
    logger_interface.set_logfile (outputFT'Unchecked_Access);
 
-   --  Set the disired voltages
+   --  Set the desired voltages
    Ctrl.Set_W_U_C1 (350.0);
    Ctrl.Set_W_U_C2 (24.0);
 

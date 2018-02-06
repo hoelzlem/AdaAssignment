@@ -69,7 +69,7 @@ package PSU_Simulation is
       D_M1      : Float := 0.0;                                     --  Buffer
       Conf      : Sim_Config_T;                                     --  Buffer
       Load_A    : loadArray_T := (others => (others => 0.0));       --  Buffer
-      Load      : Float := Float'Large;                             --  Buffer
+      Load      : Float := 1.0e3;                             --  Buffer
       Conf_OK   : Boolean := False;                                 --  Status of initilization (true when configuration is set)
       Load_OK   : Boolean := False;                                 --  Status of initilization (true when load is set)
       T_Start   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;   --  Buffer

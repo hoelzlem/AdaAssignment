@@ -61,7 +61,7 @@ package body PSU_Logging is
       write_header (logger_interface.get_logfile);
 
       loop
-         Put_Line (vt100_YELLOW & "Running logging task" & vt100_RESET);
+         Put_Line (vt100_YELLOW & "Running logging task" & vt100_RESET & " current time is " & Duration'Image (To_Duration (internal_time - start_time)));
          write_current_data (logger_interface.get_logfile, To_Duration (internal_time - start_time));
 
          next_time := next_time + STRETCHED_TASK_PERIOD;

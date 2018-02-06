@@ -1,20 +1,20 @@
 PFC_monitor_voltage_mode threshold_based
 PFC_monitor_voltage_mean 0.0
 PFC_monitor_voltage_maximum_deviation 1.0
-PFC_monitor_voltage_lower_threshold 0.0
+PFC_monitor_voltage_lower_threshold 345.0
 PFC_monitor_voltage_upper_threshold 390.0
 
 PFC_monitor_current_mode threshold_based
 PFC_monitor_current_mean 0.0
 PFC_monitor_current_maximum_deviation 1.0
 PFC_monitor_current_lower_threshold 0.0
-PFC_monitor_current_upper_threshold 100.0
+PFC_monitor_current_upper_threshold 30.0
 
-OUT_monitor_voltage_mode threshold_based
-OUT_monitor_voltage_mean 0.0
+OUT_monitor_voltage_mode mean_based
+OUT_monitor_voltage_mean 24.0
 OUT_monitor_voltage_maximum_deviation 1.0
 OUT_monitor_voltage_lower_threshold 0.0
-OUT_monitor_voltage_upper_threshold 24.0
+OUT_monitor_voltage_upper_threshold 1.0
 
 OUT_monitor_current_mode threshold_based
 OUT_monitor_current_mean 0.0

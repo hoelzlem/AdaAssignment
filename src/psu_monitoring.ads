@@ -60,18 +60,18 @@ package PSU_Monitoring is
       --  Typical controller designs allow for some overshoot to make the controller faster. This is typical behaviour during controller
       --  startup an must not trip the monitor. The monitor will allow higher deviation, by widening the tolerance band spanned by mean
       --  and deviation or lower and upper threshold, from the desired value by this factor in either of both monitoring modes.
-      settling_tolerance_expansion : Expansion_Factor_T := 1.2;
+      settling_tolerance_expansion : Expansion_Factor_T := 1.4;
       --  Maximum time the monitored signal is allowed to be outside the nominal tolerance band during monitors startup state
-      startup_time   : Time_Span := Milliseconds (5);
+      startup_time   : Time_Span := Milliseconds (15);
       --  The monitor remains in state settling for this duration
-      settling_time  : Time_Span := Milliseconds (2);
+      settling_time  : Time_Span := Milliseconds (5);
       --  Maximum time the monitored signal is allowed be outside of the nominal tolerance band before shutdown is enforced
       violation_time : Time_Span := Milliseconds (5);
    end record;
 
    type Supervisor_Config_T is record
       --  After enforcing a shutdown, the supervisor waits for this time before trying a restart
-      retry_time     : Time_Span := Milliseconds (1000);
+      retry_time     : Time_Span := Milliseconds (100);
    end record;
 
    type Monitor_T is record
@@ -103,6 +103,8 @@ package PSU_Monitoring is
       --  The monitoring task is only allowed to run after supervisor and all monitors have been configured properly. This function is used
       --  to determine whether all configurations were written at least once.
       function is_all_config_set return Boolean;
+      --  Was one of the monitors not configured with a valid configuration structure?
+      function is_config_erroneous return Boolean;
 
       procedure set_supervisor_config (new_supervisor_config : in Supervisor_Config_T);
       function get_supervisor_config return Supervisor_Config_T;
@@ -119,6 +121,9 @@ package PSU_Monitoring is
       procedure set_monitor_output_current_config (new_monitor_config : in Monitor_Config_T);
       function get_monitor_output_current_config return Monitor_Config_T;
    private
+      --  Erroneous configuration
+      --  One of the monitors was not configured correctly
+      config_error : Boolean := False;
       --  Configuration for supervisor
       supervisor_config : Supervisor_Config_T;
       supervisor_config_set : Boolean := False;
@@ -151,6 +156,12 @@ private
    monitor_output_voltage : Monitor_T;
    monitor_output_current : Monitor_T;
 
+   --  Check if monitor configuration is valid
+   --  This function is required to solve the precondition problem with is_within_limits and is_within_expanded_limits.
+   function is_monitor_config_valid (monitor_config : in Monitor_Config_T) return Boolean
+      with Global => null,
+         Depends => (is_monitor_config_valid'Result => monitor_config);
+
    --  Execute one step of the supervisor:
    --    1. Update current state with old next state
    --    2. Execute the actions associated with the current state
@@ -160,10 +171,7 @@ private
                       In_Out => (supervisor, monitor_pfc_voltage, monitor_pfc_current, monitor_output_voltage, monitor_output_current),
                       Output =>  Ctrl),
          Depends => (supervisor =>+ (monitor_pfc_voltage, monitor_pfc_current, monitor_output_voltage, monitor_output_current, Sim),
-                     monitor_pfc_voltage =>+ (supervisor, Sim),
-                     monitor_pfc_current =>+ (supervisor, Sim),
-                     monitor_output_voltage =>+ (supervisor, Sim),
-                     monitor_output_current =>+ (supervisor, Sim),
+                     (monitor_pfc_voltage, monitor_pfc_current, monitor_output_voltage, monitor_output_current) =>+ (supervisor, Sim),
                      Ctrl => supervisor,
                      null => monitoring_interface);
 
@@ -197,7 +205,7 @@ private
    function expand_threshold (threshold : in Float_Signed1000; expansion_factor : Expansion_Factor_T; T : Threshold_T) return Float_Signed10000
       with Pre => (expansion_factor > 1.0),
          Contract_Cases => ((T = lower) => (expand_threshold'Result <= threshold),
-                               (T = upper) => (expand_threshold'Result >= threshold)),
+                            (T = upper) => (expand_threshold'Result >= threshold)),
          Global => null,
          Depends => (expand_threshold'Result => (threshold, expansion_factor, T));
       pragma Annotate (GNATprove, False_Positive, "contract case might fail", "checked by Simon");

@@ -1,9 +1,6 @@
 pragma Profile (Ravenscar);
 pragma SPARK_Mode;
 
-with Ada.Text_IO; use Ada.Text_IO;
-with Ada.Exceptions; use Ada.Exceptions;
-
 with global_constants; use global_constants;
 
 package body PSU_Monitoring is
@@ -16,6 +13,11 @@ package body PSU_Monitoring is
            and monitor_pfc_current_config_set and monitor_output_voltage_config_set
            and monitor_output_current_config_set;
       end is_all_config_set;
+
+      function is_config_erroneous return Boolean is
+      begin
+         return config_error;
+      end is_config_erroneous;
 
       procedure set_supervisor_config (new_supervisor_config : in Supervisor_Config_T) is
       begin
@@ -31,7 +33,12 @@ package body PSU_Monitoring is
       procedure set_monitor_pfc_voltage_config (new_monitor_config : in Monitor_Config_T) is
       begin
          monitor_pfc_voltage_config := new_monitor_config;
-         monitor_pfc_voltage_config_set := True;
+
+         if is_monitor_config_valid (new_monitor_config) then
+            monitor_pfc_voltage_config_set := True;
+         else
+            config_error := True;
+         end if;
       end set_monitor_pfc_voltage_config;
 
       function get_monitor_pfc_voltage_config return Monitor_Config_T is
@@ -42,7 +49,12 @@ package body PSU_Monitoring is
       procedure set_monitor_pfc_current_config (new_monitor_config : in Monitor_Config_T) is
       begin
          monitor_pfc_current_config := new_monitor_config;
-         monitor_pfc_current_config_set := True;
+
+         if is_monitor_config_valid (new_monitor_config) then
+            monitor_pfc_current_config_set := True;
+         else
+            config_error := True;
+         end if;
       end set_monitor_pfc_current_config;
 
       function get_monitor_pfc_current_config return Monitor_Config_T is
@@ -53,7 +65,12 @@ package body PSU_Monitoring is
       procedure set_monitor_output_voltage_config (new_monitor_config : in Monitor_Config_T) is
       begin
          monitor_output_voltage_config := new_monitor_config;
-         monitor_output_voltage_config_set := True;
+
+         if is_monitor_config_valid (new_monitor_config) then
+            monitor_output_voltage_config_set := True;
+         else
+            config_error := True;
+         end if;
       end set_monitor_output_voltage_config;
 
       function get_monitor_output_voltage_config return Monitor_Config_T is
@@ -64,7 +81,12 @@ package body PSU_Monitoring is
       procedure set_monitor_output_current_config (new_monitor_config : in Monitor_Config_T) is
       begin
          monitor_output_current_config := new_monitor_config;
-         monitor_output_current_config_set := True;
+
+         if is_monitor_config_valid (new_monitor_config) then
+            monitor_output_current_config_set := True;
+         else
+            config_error := True;
+         end if;
       end set_monitor_output_current_config;
 
       function get_monitor_output_current_config return Monitor_Config_T is
@@ -73,6 +95,23 @@ package body PSU_Monitoring is
       end get_monitor_output_current_config;
 
    end Monitoring_Interface_T;
+
+   function is_monitor_config_valid (monitor_config : in Monitor_Config_T) return Boolean is
+      monitor_config_is_valid : Boolean := False;
+   begin
+      case monitor_config.monitoring_mode is
+         when mean_based =>
+            monitor_config_is_valid := True;
+
+         when threshold_based =>
+            if monitor_config.lower_threshold < monitor_config.upper_threshold then
+               monitor_config_is_valid := True;
+            end if;
+      end case;
+
+      return monitor_config_is_valid;
+
+   end is_monitor_config_valid;
 
    function is_within_limits (monitor : in Monitor_T; signal_value : in Float_Signed1000) return Boolean is
       within_limits : Boolean := False;
@@ -306,7 +345,6 @@ package body PSU_Monitoring is
             all_config_is_set : constant Boolean := monitoring_interface.is_all_config_set;
          begin
             if all_config_is_set then
-               Put_Line (vt100_RED & "Running monitoring task" & vt100_RESET);
                do_supervision;
             end if;
          end;
@@ -314,8 +352,6 @@ package body PSU_Monitoring is
          next_time := next_time + STRECHED_TASK_PERIOD;
          delay until next_time;
       end loop;
-   exception
-         when Error : others => Put_Line (vt100_RED & "An exception occured in monitoring " & Exception_Information (Error) & vt100_RESET);
    end monitoring_task;
 
 end PSU_Monitoring;
