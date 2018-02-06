@@ -7,7 +7,7 @@ This project is our entry for the second programming assignment for the course *
 * Markus Hölzle (3693070)
 * Alexander Lange (3637632)
 
-# Idea behind the project
+# Idea behind the Project
 
 Part of the course are two assignments.
 One on the synchronous programming language *Esterel* and one on the general purpose programming language *Ada*.
@@ -35,7 +35,7 @@ SPARK mode was also required for the assignment.
 We used it to verify absence of runtime errors within the monitoring module which could be condidered crucial for safety of machinery.
 Blowing up electrolytic caps as a result of controller instability is better avoided; the monitoring module takes the task.
 
-# Project structure
+# Project Structure
 
 Description of relevant files:
 * ./ - Base directory
@@ -52,7 +52,7 @@ Description of relevant files:
    * psu_monitoring - monitors state variables; proven with SPARK
    * psu_logging - periodically samples all voltages and currents; writes them to a log file
 
-# Running the application
+# Running the Application
 
 The application runs purely from the terminal, without any graphical interface.
 Since there are many configuration options for the circuit, its simulation and the monitoring thresholds, different configuration files are read by the program during start.
@@ -60,7 +60,7 @@ The simulation automatically starts when all configurations are valid.
 When the last timestamp of the load has been reached, the load is disconnected, irrespective of the provided load value.
 The simulation can be stopped at any time with your typical terminal abortion sequence (e.g. *Ctrl + C*).
 
-## User inputs
+## User Inputs
 
 The main loop asks the user for 4 file paths. Either the default values can be taken by entering 'y' or an individual path can be specified for each file. The default paths are as follows:
 * ./std_sim_config.txt
@@ -79,10 +79,14 @@ Scientific notation (e.g. 10.0e6) is supported.
 The parameter *mode* from the monitor's configuration is a special case.
 Valid values are *mean_based* and *threshold_based*.
 
-## Output file
+## Program Output
+
+The program will generate a lot of output during runtime. All modules will print their current state and interesting information to stdout, except the monitoring module since Text_IO is not allowed in SPARK.
+Don't be confused by the ludicrous rate of the output.
+You don't have to follow the output while the simulation is running but can scroll through some of the output afterwards or use logged data for further inspection.
 
 The logger module stores data to the specified output file for visualization with MATLAB in the last step.
-It is a .txt file with CSV format, where the first line includes the header. Usage of the output file is shown with the MATLAB script.
+It is a ASCII file with CSV format, where the first line includes the header. Usage of the output file is shown with the MATLAB script.
 
 ## Visualisation in Matlab
 
