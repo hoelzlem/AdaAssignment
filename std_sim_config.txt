@@ -1,0 +1,44 @@
+- Comment lines need to start with a '-' at the beginning of the line!
+
+- Controller for voltage of C1
+PID_U_C1_KP 0.05
+PID_U_C1_KI 0.1
+PID_U_C1_Kd 0.0
+PID_U_C1_Sp 12.0
+PID_U_C1_Sn 0.0
+PID_U_C1_T 50.0e-6
+
+- Controller for voltage of C2
+PID_U_C2_Kp 0.05
+PID_U_C2_Ki 3.0
+PID_U_C2_Kd 0.0
+PID_U_C2_Sp 10.0 
+PID_U_C2_Sn 0.0
+PID_U_C2_T 50.0e-6
+
+- Controller for current of L1
+PID_I_L1_Kp 0.4
+PID_I_L1_Ki 50.0
+PID_I_L1_Kd 0.0
+PID_I_L1_Sp 1.0
+PID_I_L1_Sn 0.0
+PID_I_L1_T 50.0e-6
+
+- Controller for current of L2
+PID_I_L2_Kp 0.4
+PID_I_L2_Ki 50.0
+PID_I_L2_Kd 0.0
+PID_I_L2_Sp 1.0
+PID_I_L2_Sn 0.0
+PID_I_L2_T 50.0e-6
+
+- Values of the electrical components
+Sim_L1 470.0e-6
+Sim_C1 470.0e-6
+Sim_L2 470.0e-6
+Sim_C2 47.0e-6
+Sim_f_V1 50.0
+Sim_Up_V1 325.0
+- Simulation time should be around 14 ns but is 10 us here (faster)
+- As a consequence accuracy of the simulation will not be to great
+Sim_T 100.0e-9

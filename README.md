@@ -1,56 +1,93 @@
-# RTPL Lab WS 2017/18 Group 15
-**Power supply simulation**
-* Markus Hölzle, 3693070
-* Simon Diehl, 3692790
-* Alexander Lange, 3637632
+# Power Supply Simulation
 
-Welcome to the introduction for the power supply simulation written in Ada/SPARK for the RTPL Lab.
-The code runs from the terminal either on Linux or Windows, and has no extra dependencies.
+This project is our entry for the second programming assignment for the course *Real-Time-Programming-Languages* at TU Munich in winter semester 2017 / 18.
 
+**Participants:**
+* Simon Diehl (3692790)
+* Markus Hölzle (3693070)
+* Alexander Lange (3637632)
 
-# Idea behind the project
+# Idea behind the Project
 
-Our group decided to implement a simulation of a power supply, which would typically be connected to an AC power supply, for example 230V, 50Hz. The output voltage and load can be specified in configuration files, and the program simulates the power-up sequence as well as the steady state behavior. 
-SPARK mode is used to implement a monitor, which checks whether all voltages and currents are within a tolerated range.
-Additionally, a logger module stores all voltages and currents in an output file for visualization in MATLAB, to see the stability of the control loop and the maximum voltages/currents that may be experienced by the respective components.
+Part of the course are two assignments.
+One on the synchronous programming language *Esterel* and one on the general purpose programming language *Ada*.
+We were asked to choose a software project that we should implement using Ada.
 
-# Contributions
-The application contains the following modules:
-* main - starts all sub-processes, handles the user inputs - written in colaboration
-* config_parser - parses the configuration files for the simulation, load and monitor - written by Alexander
-* psu_control - 4 control loops set the duty cycles within the circuit - written by Markus
-* psu_simulation - computes all voltages and currents, similar to LTSpice - written by Markus
-* psu_monitoring - SPARK, monitors the thresholds of the control loops - written by Simon
-* psu_logging - periodically samples all voltages and currents, and writes them to a log file - written by Simon
+Being electrical engineers, our group decided to implement some of the software required for a simple, computer controlled power supply.
 
-Additional files:
-* Circuit.png shows the circuit and component names - designed by Markus 
-* MATLAB script to view output log - written by Alexander
-* This documentation - written by Alexander
+The following figure shows the schematic of a generic power supply.
 
-# Running the application
-The application runs purely from the terminal, without any graphical interface. Since there are many configuration options for the circuit, its simulation and the monitoring thresholds, different configuration files are read by the program during start.
-The simulation automatically starts when all configurations are valid. When the last timestamp of the load has been reached, the load is disconnected, irrespective of the provided load value. This simulates a power supply without load until the application is aborted with Ctrl+C.
+![Schematic](Schematic.png)
 
-## User inputs
+The purpose of the power supply is to take a high AC voltage from the grid (source V1; eg. 230 V~ with 50 Hz) and convert it to a more usable, stable DC voltage.
+It consists of two power stages.
+The first stage is a power factor correction unit (bridge rectifier, PFC choke L1, switch M1 and diode D5) with an intermediate DC voltage circuit on its output (capacitor C1).
+The second stage is a forward converter (switches M2 .. M5, transformer build from L3 and L4, output bridge rectifier, buck choke L4) that takes the voltage from the intermediate circuit and converts it into a much lower, isolated and stable DC voltage (capacitor C2).
+A resistive load is connected to the power supply.
+
+Imagine a microcomputer that measures voltages and currents, does some computations and generates the PWM signals required by the five switches.
+We implemented the hardware independent software aspects namely controllers, voltage and current monitoring and data logging.
+A simple model of the power supply is used to simulate its behaviour.
+
+Our programm uses Ada's language features and the Ravenscar profile to start multiple tasks in parallel.
+The tasks are controllers, monitoring, logging and simulation.
+SPARK mode was also required for the assignment.
+We used it to verify absence of runtime errors within the monitoring module which could be condidered crucial for safety of machinery.
+Blowing up electrolytic caps as a result of controller instability is better avoided; the monitoring module takes the task.
+
+# Project Structure
+
+Description of relevant files:
+* ./ - Base directory
+   * simConfig.txt - example configuration file for simulation and controllers
+   * monitorConfig.txt - example configuration file for monitoring
+   * loadConfig.txt - example definition of load sequence
+   * log_visualisation.m - Matlab script that plots the content of the log file
+* ./src - Ada source files
+   * main - handles user's inputs and configures other modules
+   * global constants - some constants that are required by multiple modules
+   * config_parser - parses the configuration files
+   * psu_control - control loops that compute the required duty cycles
+   * psu_simulation - simulates the power supply; computes all voltages and currents based on an averaged model for all switched signals
+   * psu_monitoring - monitors state variables; proven with SPARK
+   * psu_logging - periodically samples all voltages and currents; writes them to a log file
+
+# Running the Application
+
+The application runs purely from the terminal, without any graphical interface.
+Since there are many configuration options for the circuit, its simulation and the monitoring thresholds, different configuration files are read by the program during start.
+The simulation automatically starts when all configurations are valid.
+When the last timestamp of the load has been reached, the load is disconnected, irrespective of the provided load value.
+The simulation can be stopped at any time with your typical terminal abortion sequence (e.g. *Ctrl + C*).
+
+## User Inputs
 
 The main loop asks the user for 4 file paths. Either the default values can be taken by entering 'y' or an individual path can be specified for each file. The default paths are as follows:
-* ./simConfig.txt
-* ./monitorConfig.txt
-* ./loadConfig.txt
-* ./output.txt
+* ./std_sim_config.txt
+* ./std_monitor_config.txt
+* ./std_load_config.txt
+* ./sim_output.csv
 
-All values given in the example files must be set. When using a different configuration file, make sure to set all values, otherwise the simulation will abort after parsing the file!
-The load configuration has a float timestamp in seconds, and resistance values that are set at the respective time after program start. The timestamps can be set to any time, though there is a hard-coded limit of 1000 entries.
+All values given in the example files must be set.
+When using a different configuration file, make sure to set all values. The simulation will abort after parsing the file otherwise!
+The load configuration has a float timestamp in seconds, and resistance values that are set at the respective time after program start.
+The timestamps can be set to any time. There is a hard-coded limit of 1000 entries.
 
-The parser supports comment lines in all configuration files. Any line starting with a '-' is skipped. Configuration lines start with the respective parameter, a space, and the respective float value. Scientific notation is supported. Only exception is the 'mode' parameter of the monitor, which accepts the strings "mean_based" or "threshold_based". 
-> -- this is a comment line
-> parameter value
+The parser supports comment lines in all configuration files.
+Any line starting with a "-" is skipped. Configuration lines adhere to the following structure: *name value* (e.g. *PFC_monitor_voltage_mean 0.5*).
+Scientific notation (e.g. 10.0e6) is supported.
+The parameter *mode* from the monitor's configuration is a special case.
+Valid values are *mean_based* and *threshold_based*.
 
-## Output file
+## Program Output
 
-The logger module stores data to the specified output file for visualization with MATLAB in the last step. It is a .txt file with CSV format, where the first line includes the header. Usage of the output file is shown with the MATLAB script.
+The program will generate a lot of output during runtime. All modules will print their current state and interesting information to stdout, except the monitoring module since Text_IO is not allowed in SPARK.
+Don't be confused by the ludicrous rate of the output.
+You don't have to follow the output while the simulation is running but can scroll through some of the output afterwards or use logged data for further inspection.
 
-# Visualization in MATLAB
+The logger module stores data to the specified output file for visualization with MATLAB in the last step.
+It is a ASCII file with CSV format, where the first line includes the header. Usage of the output file is shown with the MATLAB script.
 
-The supplied script visualizePowerSupply.m plots all parameters, and can be used to analyze the stability of the control loops in the power supply by inspecting the output voltage.
+## Visualisation in Matlab
+
+The supplied script plots all simulation variables for easier insight.
